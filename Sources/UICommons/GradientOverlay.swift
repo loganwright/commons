@@ -9,7 +9,7 @@ public class GradientTextLabel: UIView {
 
     /// colors: colors to use in gradient
     /// multiplier: how much larger the gradient should be than the label, a gradient of 1
-    init(colors: [UIColor], multiplier: CGFloat = 1) {
+    public init(colors: [UIColor], multiplier: CGFloat = 1) {
         self.label = UILabel()
         self.gradient = .init(colors: colors, widthMultiplier: multiplier)
 
@@ -21,7 +21,7 @@ public class GradientTextLabel: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func setup() {
+    private func setup() {
         addSubview(label)
 
         insertSubview(gradient, belowSubview: label)
@@ -37,7 +37,7 @@ public class GradientTextLabel: UIView {
         label.frame = bounds
     }
 
-    subscript<T>(dynamicMember kp: ReferenceWritableKeyPath<UILabel, T>) -> T {
+    public subscript<T>(dynamicMember kp: ReferenceWritableKeyPath<UILabel, T>) -> T {
         get { label[keyPath: kp] }
         set { label[keyPath: kp] = newValue }
     }
@@ -99,7 +99,7 @@ public final class GradientOverlay: UIView {
     }
 
     private var anchorConstraint: NSLayoutConstraint?
-    var anchor: Anchor {
+    public var anchor: Anchor {
         didSet {
             updateAnchorConstraint()
         }
@@ -258,7 +258,7 @@ extension GradientOverlay {
             .duration(1.2)
             .curve(.easeOut)
             .fromValue(gradient.endPoint)
-            .toValue(CGPoint.one)
+            .toValue(CGPoint.ones)
             .autoreverses(false)
     }
 

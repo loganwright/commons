@@ -4,27 +4,27 @@ import Commons
 
 // MARK: Container
 
-class StretchyTextViewContainer: UIView, LGStretchyTextViewDelegate {
+public class StretchyTextViewContainer: UIView, LGStretchyTextViewDelegate {
     private var height: NSLayoutConstraint! = nil
-    let textView = LGStretchyTextView()
+    public let textView = LGStretchyTextView()
     private let textViewInsets = UIEdgeInsets(top: 20, left: 28, bottom: 20, right: 28)
-    let placeholder = UILabel()
+    public let placeholder = UILabel()
 
     /// sometimes the patterns aren't clear, when using delegates vs functions like this..
     /// I will try to clarify as I go
-    var onUpdates: (LGStretchyTextView) -> Void = { _ in  }
-    var onShouldReturn: (LGStretchyTextView) -> Bool = { _ in true }
+    public var onUpdates: (LGStretchyTextView) -> Void = { _ in  }
+    public var onShouldReturn: (LGStretchyTextView) -> Bool = { _ in true }
 
-    func set(maxHeightPortrait: CGFloat) {
+    public func set(maxHeightPortrait: CGFloat) {
         textView.maxHeightPortrait = maxHeightPortrait - (textViewInsets.top + textViewInsets.bottom)
     }
 
-    override init(frame: CGRect) {
+    public override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
     }
 
-    required init?(coder: NSCoder) {
+    public required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
@@ -59,7 +59,7 @@ class StretchyTextViewContainer: UIView, LGStretchyTextViewDelegate {
 
     // MARK:
 
-    override func layoutSubviews() {
+    public override func layoutSubviews() {
         super.layoutSubviews()
         positionPlaceholder()
     }
@@ -80,41 +80,41 @@ class StretchyTextViewContainer: UIView, LGStretchyTextViewDelegate {
         onUpdates(textView)
     }
 
-    func stretchyTextViewDidChangeSize(_ textView: LGStretchyTextView) {
+    public func stretchyTextViewDidChangeSize(_ textView: LGStretchyTextView) {
         let textViewHeight = textView.bounds.height
         let targetConstant = textViewHeight + textViewInsets.top + textViewInsets.bottom
         height.constant = targetConstant
         layoutIfNeeded()
     }
 
-    func stretchyTextViewDidChangeContents(_ textView: LGStretchyTextView) {
+    public func stretchyTextViewDidChangeContents(_ textView: LGStretchyTextView) {
         update()
     }
 
-    func stretchyTextViewShouldReturn(_ textView: LGStretchyTextView) -> Bool {
+    public func stretchyTextViewShouldReturn(_ textView: LGStretchyTextView) -> Bool {
         return onShouldReturn(textView)
     }
 }
 
 // MARK: Text View
 
-@objc protocol LGStretchyTextViewDelegate {
+@objc public protocol LGStretchyTextViewDelegate {
     func stretchyTextViewDidChangeSize(_ textView: LGStretchyTextView)
     func stretchyTextViewDidChangeContents(_ textView: LGStretchyTextView)
     @objc optional func stretchyTextViewShouldReturn(_ textView: LGStretchyTextView) -> Bool
 }
 
-class LGStretchyTextView : UITextView, UITextViewDelegate {
+public class LGStretchyTextView : UITextView, UITextViewDelegate {
 
     // MARK: Delegate
 
-    weak var stretchyTextViewDelegate: LGStretchyTextViewDelegate?
+    public weak var stretchyTextViewDelegate: LGStretchyTextViewDelegate?
 
     // MARK: Public Properties
 
-    var maxHeightPortrait: CGFloat = 400
-    var maxHeightLandScape: CGFloat = 60
-    var maxHeight: CGFloat {
+    public var maxHeightPortrait: CGFloat = 400
+    public var maxHeightLandScape: CGFloat = 60
+    public var maxHeight: CGFloat {
         get {
             Log.warn("if we're sticking w storyboards, we lose refs to thesee")
             // only portrait
@@ -137,19 +137,19 @@ class LGStretchyTextView : UITextView, UITextViewDelegate {
 
     // MARK: Property Overrides
 
-    override var contentSize: CGSize {
+    public override var contentSize: CGSize {
         didSet {
             resize()
         }
     }
 
-    override var font: UIFont! {
+    public override var font: UIFont! {
         didSet {
             sizingTextView.font = font
         }
     }
 
-    override var textContainerInset: UIEdgeInsets {
+    public override var textContainerInset: UIEdgeInsets {
         didSet {
             sizingTextView.textContainerInset = textContainerInset
         }
@@ -157,18 +157,18 @@ class LGStretchyTextView : UITextView, UITextViewDelegate {
 
     // MARK: Initializers
 
-    override init(frame: CGRect = .zero, textContainer: NSTextContainer? = nil) {
+    public override init(frame: CGRect = .sizing, textContainer: NSTextContainer? = nil) {
         super.init(frame: frame, textContainer: textContainer);
         setup()
     }
 
-    required init(coder aDecoder: NSCoder) {
+    public required init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
     // MARK: Setup
 
-    func setup() {
+    internal func setup() {
         font = UIFont.systemFont(ofSize: 17.0)
         textContainerInset = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
         delegate = self
@@ -176,13 +176,13 @@ class LGStretchyTextView : UITextView, UITextViewDelegate {
 
     // MARK: Sizing
 
-    func resize() {
+    public func resize() {
         bounds.size.height = self.targetHeight()
         layoutIfNeeded()
         stretchyTextViewDelegate?.stretchyTextViewDidChangeSize(self)
     }
 
-    func targetHeight() -> CGFloat {
+    public func targetHeight() -> CGFloat {
 
         /*
         There is an issue when calling `sizeThatFits` on self that results in really weird drawing issues with aligning line breaks ("\n").  For that reason, we have a textView whose job it is to size the textView. It's excess, but apparently necessary.  If there's been an update to the system and this is no longer necessary, or if you find a better solution. Please remove it and submit a pull request as I'd rather not have it.
@@ -197,7 +197,7 @@ class LGStretchyTextView : UITextView, UITextViewDelegate {
 
     // MARK: Alignment
 
-    func align() {
+    public func align() {
         guard let end = self.selectedTextRange?.end else { return }
         let caretRect = self.caretRect(for: end)
 
@@ -225,15 +225,15 @@ class LGStretchyTextView : UITextView, UITextViewDelegate {
 
     // MARK: UITextViewDelegate
 
-    func textViewDidChangeSelection(_ textView: UITextView) {
+    public func textViewDidChangeSelection(_ textView: UITextView) {
         self.align()
     }
 
-    func textViewDidChange(_ textView: UITextView) {
+    public func textViewDidChange(_ textView: UITextView) {
         self.stretchyTextViewDelegate?.stretchyTextViewDidChangeContents(self)
     }
 
-    func textView(_ textView: UITextView,
+    public func textView(_ textView: UITextView,
                   shouldChangeTextIn range: NSRange,
                   replacementText text: String) -> Bool {
         guard text ==  "\n" else { return true }

@@ -9,13 +9,12 @@ public class ErrorPopup: MessagePopup {
     private init(_ error: Error) {
         self.error = error
         super.init(error.display)
-        backgroundColor = .systemGray
+        backgroundColor = ErrorPopup.appearance().backgroundColor ?? .systemGray
     }
 
-    required init?(coder: NSCoder) {
+    public required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
 
     public static func launch(file: String = #file,
                               line: Int = #line,
@@ -28,12 +27,12 @@ public class ErrorPopup: MessagePopup {
     }
 }
 
-final class Closer {
+public final class Closer {
     private let desc: String
     private let function: () -> Void
-    fileprivate init(
-        file: String = #file,
-        line: Int = #line,
+    public init(
+        file: String,
+        line: Int,
         call function: @escaping () -> Void
     ) {
         self.desc = "\(file)[\(line)]"
@@ -45,12 +44,12 @@ final class Closer {
 
     }
 
-    func callAsFunction() {
+    public func callAsFunction() {
         function()
     }
 }
 
-public class MessagePopup: Popup {
+open class MessagePopup: Popup {
     public let message: String
     private lazy var label: UILabel = Builder(UILabel.init)
         .numberOfLines(0)
@@ -61,7 +60,7 @@ public class MessagePopup: Popup {
         .text(self.message)
         .make()
 
-    fileprivate init(_ message: String) {
+    public init(_ message: String) {
         self.message = message
         super.init()
         setup()
@@ -69,11 +68,11 @@ public class MessagePopup: Popup {
         layoutIfNeeded()
     }
 
-    required init?(coder: NSCoder) {
+    public required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private func setup() {
+    open func setup() {
         addSubview(label)
         pin(label, to: .top, 20)
         pin(label, to: .left, 30)
@@ -82,7 +81,7 @@ public class MessagePopup: Popup {
 
         let bottomBarHeight = 40.paddingBottom
         pin(.height, .greaterThanOrEqual, to: bottomBarHeight, priority: .defaultHigh)
-        backgroundColor = "#4A71FF".uicolor
+        backgroundColor = MessagePopup.appearance().backgroundColor ?? .systemBlue
     }
 
     public static func launch(file: String = #file, line: Int = #line,
@@ -149,7 +148,7 @@ open class Popup: UIView {
             .completion(self.removeFromSuperview)
     }
 
-    internal func listenKeyboard() {
+    private func listenKeyboard() {
         KeyboardNotifications.shared.listen(with: self) { welf, update in
             let keyboardHeight = KeyboardNotifications.shared
                 .last

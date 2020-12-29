@@ -2,7 +2,7 @@
 import UIKit
 
 extension UINavigationController {
-    func hideNavigationBar() {
+    public func hideNavigationBar() {
         navigationBar.setBackgroundImage(UIImage(), for:.default)
         navigationBar.shadowImage = UIImage()
         navigationBar.layoutIfNeeded()

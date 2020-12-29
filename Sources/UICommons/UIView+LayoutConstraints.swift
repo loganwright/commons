@@ -6,7 +6,7 @@ import Commons
 
 extension UIView {
     @discardableResult
-    func pin(_ attr: NSLayoutConstraint.Attribute, _ relation: NSLayoutConstraint.Relation = .equal, to: CGFloat, priority: UILayoutPriority? = nil, multiplier: CGFloat = 1.0) -> NSLayoutConstraint {
+    public func pin(_ attr: NSLayoutConstraint.Attribute, _ relation: NSLayoutConstraint.Relation = .equal, to: CGFloat, priority: UILayoutPriority? = nil, multiplier: CGFloat = 1.0) -> NSLayoutConstraint {
         translatesAutoresizingMaskIntoConstraints = false
         let constraint = NSLayoutConstraint(
             item: self,
@@ -25,12 +25,12 @@ extension UIView {
     }
 
     @discardableResult
-    func pin(_ subview: UIView, edges attributes: NSLayoutConstraint.Attribute..., padding: CGFloat = 0.0) -> [NSLayoutConstraint] {
+    public func pin(_ subview: UIView, edges attributes: NSLayoutConstraint.Attribute..., padding: CGFloat = 0.0) -> [NSLayoutConstraint] {
         pin(subview, edges: attributes, padding: padding)
     }
 
     @discardableResult
-    func pin(_ subview: UIView, edges attributes: [NSLayoutConstraint.Attribute], padding: CGFloat = 0.0) -> [NSLayoutConstraint] {
+    public func pin(_ subview: UIView, edges attributes: [NSLayoutConstraint.Attribute], padding: CGFloat = 0.0) -> [NSLayoutConstraint] {
         attributes.map { attrib in
             switch attrib {
             case .top, .topMargin:
@@ -48,7 +48,7 @@ extension UIView {
     }
 
     @discardableResult
-    func pin(_ subview: UIView, _ relation: NSLayoutConstraint.Relation = .equal, to: NSLayoutConstraint.Attribute,_ const: CGFloat = 0.0, priority: UILayoutPriority? = nil, multiplier: CGFloat = 1) -> NSLayoutConstraint {
+    public func pin(_ subview: UIView, _ relation: NSLayoutConstraint.Relation = .equal, to: NSLayoutConstraint.Attribute,_ const: CGFloat = 0.0, priority: UILayoutPriority? = nil, multiplier: CGFloat = 1) -> NSLayoutConstraint {
         subview.translatesAutoresizingMaskIntoConstraints = false
         let constraint = NSLayoutConstraint(
             item: subview,
@@ -67,7 +67,7 @@ extension UIView {
     }
 
     @discardableResult
-    func pin(_ av: UIView,
+    public func pin(_ av: UIView,
              _ a: NSLayoutConstraint.Attribute,
              _ relation: NSLayoutConstraint.Relation = .equal,
              to bv: UIView,
@@ -99,7 +99,7 @@ extension UIView {
     }
 
     @discardableResult
-    func pinAspectRatio(_ a: NSLayoutConstraint.Attribute, _ relation: NSLayoutConstraint.Relation, _ b: NSLayoutConstraint.Attribute, _ multiplier: CGFloat = 1.0) -> NSLayoutConstraint {
+    public func pinAspectRatio(_ a: NSLayoutConstraint.Attribute, _ relation: NSLayoutConstraint.Relation, _ b: NSLayoutConstraint.Attribute, _ multiplier: CGFloat = 1.0) -> NSLayoutConstraint {
         translatesAutoresizingMaskIntoConstraints = false
         let constraint = NSLayoutConstraint(
             item: self,
@@ -117,12 +117,13 @@ extension UIView {
 
 // MARK: UIImageView
 
-enum WidthHeight {
+public enum WidthHeight {
     case width, height
 }
+
 extension UIImageView {
     /// used to pin an imageview
-    func pinAspectRatio(maintaining: WidthHeight) {
+    public func pinAspectRatio(maintaining: WidthHeight) {
         guard image != nil else {
             Log.warn("unable to pin image aspect ratio, no image set")
             return
@@ -140,8 +141,8 @@ extension UIImageView {
 }
 
 extension Array where Element == NSLayoutConstraint.Attribute {
-    static let sides: [NSLayoutConstraint.Attribute] = [.leading, .trailing]
-    static let all: [NSLayoutConstraint.Attribute] = sides + [.top, .bottom]
+    public static let sides: [NSLayoutConstraint.Attribute] = [.leading, .trailing]
+    public static let all: [NSLayoutConstraint.Attribute] = sides + [.top, .bottom]
 }
 
 #endif

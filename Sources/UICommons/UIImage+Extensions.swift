@@ -7,7 +7,7 @@ import Commons
 // MARK: Drawing
 
 extension UIImage {
-    static func makeCircle(size: CGSize, backgroundColor: UIColor) -> UIImage? {
+    public static func makeCircle(size: CGSize, backgroundColor: UIColor) -> UIImage? {
         UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
         guard let context = UIGraphicsGetCurrentContext() else {
             Log.warn("unable to make graphics context for circle graphic render")

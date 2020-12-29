@@ -1,5 +1,6 @@
 #if canImport(UIKit)
 import UIKit
+import Commons
 
 public final class KeyboardNotifications: NSObject {
     public static func boot() {
@@ -63,77 +64,7 @@ public final class KeyboardNotifications: NSObject {
     }
 }
 
-protocol EncapsulationProtocol {
-    associatedtype Wrapped
-    var wrapped: Wrapped? { get }
-}
-extension Optional: EncapsulationProtocol {
-    var wrapped: Wrapped? { self }
-}
-
-extension Array where Element: EncapsulationProtocol {
-    func flatten() -> [Element.Wrapped] {
-        compactMap { $0.wrapped }
-    }
-}
-
-extension Array {
-    func flatten<T>(as t: T.Type) -> [T] {
-        compactMap { $0 as? T }
-    }
-}
-
-
-extension Sequence {
-    var array: [Element] { Array(self) }
-}
-extension Sequence where Element: Hashable {
-    var set: Set<Element> { Set(self)}
-}
-
-extension Array {
-    mutating func set<T>(each  kp: WritableKeyPath<Element, T>, to new: T) {
-        self = self.map { element in
-            var element = element
-            element[keyPath: kp] = new
-            return element
-        }
-    }
-
-    func set<T>(each kp: ReferenceWritableKeyPath<Element, T>, to new: T) {
-        self.forEach { element in
-            element[keyPath: kp] = new
-        }
-    }
-
-    func pass<T>(each kp: KeyPath<Element, (T) -> Void>, arg: T) {
-        self.forEach { element in
-            // can I just map this?
-            let function = element[keyPath: kp]
-            function(arg)
-        }
-    }
-}
-
-extension Array {
-    mutating func flush<T>(whereNil kp: KeyPath<Element, T?>) {
-        self = self.filter { $0[keyPath: kp] != nil }
-    }
-
-    mutating func flush(where shouldFlush: (Element) -> Bool) {
-        self = self.filter { !shouldFlush($0) }
-    }
-}
-
-extension Array {
-    mutating func flush<T: Equatable>(where kp: KeyPath<Element, T?>, matches: T?) {
-        self = self.filter { $0[keyPath: kp] == matches }
-    }
-
-    mutating func flush<T: AnyObject>(where kp: KeyPath<Element, T?>, matches: T?) {
-        self = self.filter { $0[keyPath: kp] === matches }
-    }
-}
+// MARK: Update
 
 extension KeyboardNotifications {
     public struct KeyboardUpdate {
