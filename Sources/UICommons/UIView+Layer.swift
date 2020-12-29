@@ -1,7 +1,8 @@
+#if canImport(UIKit)
 import UIKit
 
 extension UIView {
-    var cornerRadius: CGFloat {
+    public var cornerRadius: CGFloat {
         get {
             return layer.cornerRadius
         }
@@ -11,3 +12,4 @@ extension UIView {
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 /// a basic label class for displaying text with a gradient
@@ -265,3 +266,4 @@ extension GradientOverlay {
         gradient.animationKeys()?.set.union(["startPoint", "endPoint"]).count == 2
     }
 }
+#endif

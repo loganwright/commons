@@ -1,7 +1,8 @@
+#if canImport(UIKit)
 import UIKit
 
 extension UIViewController {
-    func presentChildViewController(_ vc: UIViewController, completion: ((Bool) -> Void)?) {
+    public func presentChildViewController(_ vc: UIViewController, completion: ((Bool) -> Void)?) {
         addChild(vc)
         view.addSubview(vc.view)
 
@@ -16,7 +17,7 @@ extension UIViewController {
         })
     }
 
-    func dismissChildViewController(_ vc: UIViewController, completion: ((Bool) -> Void)?) {
+    public func dismissChildViewController(_ vc: UIViewController, completion: ((Bool) -> Void)?) {
         vc.willMove(toParent: nil)
 
         UIView.animate(withDuration: 0.25, animations: { [weak vc] in
@@ -28,3 +29,4 @@ extension UIViewController {
         })
     }
 }
+#endif

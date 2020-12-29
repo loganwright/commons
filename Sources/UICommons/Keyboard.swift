@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 public final class KeyboardNotifications: NSObject {
@@ -209,3 +210,4 @@ extension Notification {
         return curve
     }
 }
+#endif

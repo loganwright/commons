@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 
 public unowned let keyWindow = UIApplication.shared.windows.first!
@@ -38,3 +39,4 @@ extension Int {
 // Global Imports
 
 @_exported import Commons
+#endif
