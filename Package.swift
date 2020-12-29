@@ -4,13 +4,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "mishmash",
+    name: "Commons",
     platforms: [
         .macOS(.v10_15),
         .iOS(.v9)
     ],
     products: [
+        /// rename this to base
         .library(name: "Commons", targets: ["Commons"]),
+        /// rename base?
         .library(name: "Endpoints", targets: ["Endpoints"]),
         .library(name: "UICommons", targets: ["UICommons"]),
         .library(name: "AnimationKit", targets: ["AnimationKit"])
