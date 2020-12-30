@@ -6,6 +6,7 @@ extension String {
     public var uicolor: UIColor {
         return .init(hex: self)
     }
+    // todo: move file
     public var localUIImage: UIImage! {
         let img = UIImage(named: self)
         if img == nil, self != "empty" {

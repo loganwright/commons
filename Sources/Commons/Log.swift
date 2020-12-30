@@ -18,17 +18,47 @@ public struct Log {
     // MARK: Logs
 
 
-    /// storing logs for easier testng
-    static var _testable_logs: [String] = []
-    #if DEBUG
-    private static func print(_ str: String) {
-        _testable_logs.append(str)
-        Swift.print(str)
+    public static var unsafe_collectDebugLogs = false
+    public static var unsafe_debugLogMaxEntries = 500
+
+    private static var _unsafe_testable_logs: [String] = []
+
+    private static func add(log: String) {
+        defer { _unsafe_testable_logs.append(log) }
+        guard _unsafe_testable_logs.count >= unsafe_debugLogMaxEntries else { return }
+        do {
+            /// overwrite last entries
+            try Files.debugLogs.write(filename: ".logs", _unsafe_testable_logs)
+            _unsafe_testable_logs = []
+        } catch {
+            Log.warn("unable to write logs")
+            _unsafe_testable_logs.removeFirst()
+        }
     }
-    #else
-    private static func print(_: String) {}
-    #endif
+
+    public static func fetchLogs() -> [String] {
+        do {
+            let logs = try Files.debugLogs.read(filename: ".logs", as: [String].self) ?? []
+            return logs + _unsafe_testable_logs
+        } catch {
+            Log.warn("unable to read logs")
+            return _unsafe_testable_logs
+        }
+    }
+
+    private static func print(_ str: String) {
+        #if DEBUG
+        Swift.print(str)
+        #endif
+
+        if unsafe_collectDebugLogs { add(log: str) }
+    }
 }
+
+extension Files {
+    public static let debugLogs = Files(folder: "logs", encrypted: true)
+}
+
 
 import Foundation
 
@@ -48,5 +78,13 @@ extension Error {
         } else {
             return "\(self)"
         }
+    }
+}
+
+
+public func warnIfNil<T>(file: String = #file, line: Int = #line, _ thing: T?, _ msg: String) {
+    if let _ = thing { return }
+    else {
+        Log.warn(file: file, line: line, "unexpectedly found nil: \(msg)")
     }
 }

@@ -1,7 +1,7 @@
 import Foundation
 import Commons
 
-typealias NetworkCompletion = (Result<NetworkResponse, Error>) -> Void
+public typealias NetworkCompletion = (Result<NetworkResponse, Error>) -> Void
 
 public struct NetworkResponse {
     public let http: HTTPURLResponse

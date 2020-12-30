@@ -3,12 +3,22 @@
 import UIKit
 import Foundation
 
-public class ErrorPopup: MessagePopup {
+open class ErrorPopup: MessagePopup {
     public let error: Error
 
-    private init(_ error: Error) {
+    public required init(_ error: Error) {
         self.error = error
         super.init(error.display)
+    }
+
+    public required init(_ message: String) {
+        self.error = message
+        super.init(message)
+    }
+
+    open override func setup() {
+        super.setup()
+
         backgroundColor = ErrorPopup.appearance().backgroundColor ?? .systemGray
     }
 
@@ -20,10 +30,10 @@ public class ErrorPopup: MessagePopup {
                               line: Int = #line,
                               with error: Error) {
         Log.error(file: file, line: line, error)
-        let popup = ErrorPopup(error)
+        let popup = Self.init(error.display)
         let show = popup.show(file: file, line: line)
         let hide = popup.hide(file: file, line: line)
-        show.completion(hide.delay(1.5).commit).commit()
+        show.completion(hide.delay(1.8).commit).commit()
     }
 }
 
@@ -51,7 +61,7 @@ public final class Closer {
 
 open class MessagePopup: Popup {
     public let message: String
-    private lazy var label: UILabel = Builder(UILabel.init)
+    public private(set) lazy var label: UILabel = Builder(UILabel.init)
         .numberOfLines(0)
         .font(.helvetica(18))
         .textAlignment(.center)
@@ -60,7 +70,7 @@ open class MessagePopup: Popup {
         .text(self.message)
         .make()
 
-    public init(_ message: String) {
+    public required init(_ message: String) {
         self.message = message
         super.init()
         setup()
@@ -86,7 +96,7 @@ open class MessagePopup: Popup {
 
     public static func launch(file: String = #file, line: Int = #line,
                        msg: String) {
-        let popup = MessagePopup(msg)
+        let popup = Self.init(msg)
         let show = popup.show(file: file, line: line)
         let hide = popup.hide(file: file, line: line)
         show.completion(hide.delay(1.5).commit).commit()

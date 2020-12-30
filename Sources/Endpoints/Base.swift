@@ -157,7 +157,7 @@ public class Base {
         return request
     }
 
-    var expandedUrl: String {
+    public var expandedUrl: String {
         var url = self.baseUrl.withTrailingSlash
         if _path.hasPrefix("/") {
             url += _path.dropFirst()
@@ -284,7 +284,7 @@ public class PathBuilder {
     public var patch: HTTPMethod = .patch
     public var delete: HTTPMethod = .delete
 
-    private let base: Base
+    public let base: Base
     private let startingPath: String?
 
     fileprivate init(_ base: Base, startingPath: String? = nil) {

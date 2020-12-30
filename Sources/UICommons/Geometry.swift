@@ -145,7 +145,7 @@ extension CGFloat {
     public static var ninetyDegrees: CGFloat { CGFloat(.pi / 2.0) }
 }
 
-struct Geometry {
+public struct Geometry {
     /// assuming a fill from 0-1.0 where 0 is 12 o'clock, 0.25 is 3 o'clock, and so on
     public static func convertToAngle(fill: Double) -> CGFloat {
         assert(0...1 ~= fill, "unsupported value, expected 0-1.0")

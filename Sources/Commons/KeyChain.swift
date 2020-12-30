@@ -8,7 +8,7 @@ private let appKeyIdentifier: String = {
 }()
 
 public final class KeyChain {
-    static let shared: KeyChain = .init()
+    public static let shared: KeyChain = .init()
     private(set) var appKey: Data = .init()
     private init() {
         appKey = try! loadAppKey()
@@ -210,6 +210,22 @@ public struct Files {
             }
 
             guard creation < createdBefore else { return nil }
+            return content.lastPathComponent
+        }
+    }
+
+    public func allFiles(createdAfter: Date) throws -> [String] {
+        let contents = try FileManager.default.contentsOfDirectory(
+            at: dir,
+            includingPropertiesForKeys: [.creationDateKey],
+            options: [])
+
+        return try contents.compactMap { content in
+            guard let creation = try content.resourceValues(forKeys: [.creationDateKey]).creationDate else {
+                throw "missing creation for: \(content)"
+            }
+
+            guard creation > createdAfter else { return nil }
             return content.lastPathComponent
         }
     }

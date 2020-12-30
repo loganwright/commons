@@ -21,7 +21,7 @@ public struct Version: Codable, Equatable {
         return leading + version
     }
 
-    init(tag: String = "", major: Int, minor: Int? = nil, patch: Int? = nil) {
+    public init(tag: String = "", major: Int, minor: Int? = nil, patch: Int? = nil) {
         self.leading = tag
         self.major = major
         self.minor = minor
@@ -93,6 +93,6 @@ extension String {
 }
 
 extension String {
-    var scalars: [Unicode.Scalar] { Array(unicodeScalars) }
-    var chars: [Character] { Array(self) }
+    public var scalars: [Unicode.Scalar] { Array(unicodeScalars) }
+    public var chars: [Character] { Array(self) }
 }

@@ -11,8 +11,13 @@ public extension Model {
 extension Decodable {
     public static func decode(_ data: Data) throws -> Self {
         let decoder = JSONDecoder()
+        // todo: move this to Model
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(Self.self, from: data)
+    }
+
+    public init(jsonData: Data) throws {
+        self = try Self.decode(jsonData)
     }
 }
 

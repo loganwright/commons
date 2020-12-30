@@ -22,6 +22,14 @@ extension CGFloat {
             return 0
         }
     }
+
+    public func ifSmall(use small: CGFloat) -> CGFloat {
+        if self.paddingTop <= 20 {
+            return small
+        } else {
+            return self
+        }
+    }
 }
 
 extension Int {
@@ -33,6 +41,30 @@ extension Int {
     /// bottom is 34 on swipe up devices
     public var paddingBottom: CGFloat {
         CGFloat(self).paddingBottom
+    }
+
+    public func ifSmall(use small: CGFloat) -> CGFloat {
+        if self.paddingTop <= 20 {
+            return small
+        } else {
+            return CGFloat(self)
+        }
+    }
+}
+
+extension UIDevice {
+    @available(iOS 11, *)
+    public var hasPhysicalHomeButton: Bool {
+        /// on iPhone X or phones w swipe instead of button, the tab bar seems taller and we position differently..
+        /// we're detecting this by seeing if the window has insets that need to be accounted for
+        return abs(keyWindow.safeAreaInsets.bottom) > 0
+    }
+}
+extension UIDevice {
+    @available(iOS 11, *)
+    public var hasNotch: Bool {
+        // 20 is the status bar, hacky, but ya, had to do it for some screens /sorry
+        return abs(keyWindow.safeAreaInsets.top) > 20
     }
 }
 
