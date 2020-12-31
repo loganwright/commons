@@ -1,12 +1,14 @@
 import Foundation
 
-public protocol Model: Codable {
+public protocol CustomEncodingStrategy {
     static var encodingStrategy: JSONEncoder.KeyEncodingStrategy { get }
 }
-public extension Model {
-    static var encodingStrategy: JSONEncoder.KeyEncodingStrategy { .useDefaultKeys }
-}
 
+extension CustomEncodingStrategy {
+    fileprivate var encodingStrategy: JSONEncoder.KeyEncodingStrategy {
+        Self.encodingStrategy
+    }
+}
 
 extension Decodable {
     public static func decode(_ data: Data) throws -> Self {
@@ -27,17 +29,9 @@ extension Encodable {
         if pretty {
             encoder.outputFormatting = .prettyPrinted
         }
-        return try encoder.encode(self)
-    }
-}
-
-extension Encodable where Self: Model {
-    public func encoded(pretty: Bool = false) throws -> Data {
-        let encoder = JSONEncoder()
-        if pretty {
-            encoder.outputFormatting = .prettyPrinted
+        if let strat = self as? CustomEncodingStrategy {
+            encoder.keyEncodingStrategy = strat.encodingStrategy
         }
-        encoder.keyEncodingStrategy = .convertToSnakeCase
         return try encoder.encode(self)
     }
 }
