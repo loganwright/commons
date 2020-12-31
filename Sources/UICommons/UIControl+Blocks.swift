@@ -1,6 +1,5 @@
 #if os(iOS)
 import UIKit
-public typealias Block = () -> Void
 
 extension UIControl.Event {
     public static let tap: UIControl.Event = .touchUpInside
