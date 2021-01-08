@@ -3,6 +3,10 @@ import UIKit
 
 public unowned let keyWindow = UIApplication.shared.windows.first!
 
+public var isSmallScreen: Bool {
+    return 0.paddingTop <= 20
+}
+
 extension CGFloat {
     ///
     /// top notch: 47, bottom: line 34
@@ -24,7 +28,7 @@ extension CGFloat {
     }
 
     public func ifSmall(use small: CGFloat) -> CGFloat {
-        if self.paddingTop <= 20 {
+        if isSmallScreen {
             return small
         } else {
             return self
@@ -44,7 +48,7 @@ extension Int {
     }
 
     public func ifSmall(use small: CGFloat) -> CGFloat {
-        if 0.paddingTop <= 20 {
+        if isSmallScreen {
             return small
         } else {
             return CGFloat(self)
