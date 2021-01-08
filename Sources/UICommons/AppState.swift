@@ -44,7 +44,7 @@ extension Int {
     }
 
     public func ifSmall(use small: CGFloat) -> CGFloat {
-        if self.paddingTop <= 20 {
+        if 0.paddingTop <= 20 {
             return small
         } else {
             return CGFloat(self)
