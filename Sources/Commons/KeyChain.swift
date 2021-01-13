@@ -26,6 +26,29 @@ public final class KeyChain {
         return passKey
     }
 
+    public subscript(key: String) -> String? {
+        get {
+            guard let data = try? item(kSecClass: kSecClassKey, identifier: key) else {
+                return nil
+            }
+            return String(data: data, encoding: .utf8)
+        }
+        set {
+            guard let value = newValue else {
+                try? remove(kSecClass: kSecClassKey, identifier: key)
+                return
+            }
+            do {
+                guard let data = value.data(using: .utf8, allowLossyConversion: false) else {
+                    throw "failed to convert string to data"
+                }
+                try insert(kSecClass: kSecClassKey, identifier: key, data: data)
+            } catch {
+                Log.error(error)
+            }
+        }
+    }
+
     public func deleteAll() throws {
         let secItemClasses =  [
             kSecClassGenericPassword,
