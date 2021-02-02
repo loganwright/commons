@@ -85,7 +85,10 @@ extension Error {
         } else if let string = _localized as? String {
             let raw = Data(string.utf8)
             if let json = try? JSON.decode(raw) {
-                return json.nonFieldErrors?.string ?? json.message?.string ?? "\(json)"
+                return json.nonFieldErrors?.string
+                    ?? json.message?.string
+                    ?? json.detail?.string
+                    ?? "\(json)"
             } else {
                 return ns.domain + ":\n" + "\(ns.code) - " + string
             }
