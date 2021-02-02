@@ -1,18 +1,32 @@
 public struct Log {
-    public static func info(file: String = #file, line: Int = #line, _ msg: String) {
-        let file = file.components(separatedBy: "/").last ?? "<>"
-        print("\(file):\(line) - \(msg)")
+    /// use this to pipe log messages out
+    public enum Severity {
+        case info, warn, error
     }
+    public static var outPipe: (Severity, String) -> Void = { _, _ in }
+
+    public static func info(file: String = #file, line: Int = #line, _ msg: Any) {
+        let file = file.components(separatedBy: "/").last ?? "<>"
+        let msg = "\(file):\(line) - \(msg)"
+        print(msg)
+        outPipe(.info, msg)
+    }
+
     public static func warn(file: String = #file, line: Int = #line, _ msg: String) {
         let file = file.components(separatedBy: "/").last ?? "<>"
+        let msg = "\(file):\(line) - \(msg)"
         print("*** WARNING ***")
-        print("\(file):\(line) - \(msg)")
+        print(msg)
+        outPipe(.warn, msg)
     }
+
     public static func error(file: String = #file, line: Int = #line, _ err: Error) {
         let file = file.components(separatedBy: "/").last ?? "<>"
+        let msg = "\(file):\(line) - \(err.display)"
         print("!!*** ERROR ***!!")
         print("*****************")
-        print("\(file):\(line) - \(err.display)")
+        print(msg)
+        outPipe(.error, msg)
     }
 
     // MARK: Logs

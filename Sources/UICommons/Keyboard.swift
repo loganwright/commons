@@ -68,6 +68,10 @@ public final class KeyboardNotifications: NSObject {
 
 extension KeyboardNotifications {
     public struct KeyboardUpdate {
+        public var isVisibleInWindow: Bool {
+            endVisibleHeight(in: keyWindow) > 0
+        }
+
         public enum Event {
             case change, appear, disappear
         }

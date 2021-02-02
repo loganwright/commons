@@ -11,10 +11,10 @@ extension CustomEncodingStrategy {
 }
 
 extension Decodable {
-    public static func decode(_ data: Data) throws -> Self {
+    public static func decode(_ data: Data, strategy: JSONDecoder.KeyDecodingStrategy = .convertFromSnakeCase) throws -> Self {
         let decoder = JSONDecoder()
         // todo: move this to Model
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.keyDecodingStrategy = strategy
         return try decoder.decode(Self.self, from: data)
     }
 

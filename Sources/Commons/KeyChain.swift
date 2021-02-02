@@ -8,11 +8,14 @@ private let appKeyIdentifier: String = {
 }()
 
 public final class KeyChain {
+
     public static let shared: KeyChain = .init()
-    private(set) var appKey: Data = .init()
+
+    private(set) lazy var appKey: Data = try! loadAppKey()
+
     private init() {
-        appKey = try! loadAppKey()
-        assert(!appKey.isEmpty)
+        /// force load
+        _ = appKey
     }
 
     /// an app key is used to encrypt the user's data locally, it should be generated a single time and stored in the key chain for security
@@ -102,8 +105,82 @@ public final class KeyChain {
             kSecAttrSynchronizable as String: true,
             kSecValueData as String: data,
         ]
-        let status = SecItemAdd(query as CFDictionary, nil)
+        var status = SecItemCopyMatching(query as CFDictionary, nil)
+        switch status {
+        case errSecSuccess, errSecInteractionNotAllowed:
+            let attributes = [kSecValueData as String: data]
+            status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        case errSecItemNotFound:
+            status = SecItemAdd(query as CFDictionary, nil)
+        default:
+            break
+        }
         guard status == errSecSuccess else { throw "unhandled keychain error: \(status)" }
+    }
+}
+
+extension OSStatus {
+    var readable: String {
+        switch self {
+        case errSecSuccess: return "errSec: Success"
+        case errSecUnimplemented: return "errSec: Unimplemented"
+        case errSecDiskFull: return "errSecDisk: Full"
+        case errSecIO: return "errSec: IO"
+        case errSecParam: return "errSec: Param"
+        case errSecWrPerm: return "errSecWr: Perm"
+        case errSecAllocate: return "errSec: Allocate"
+        case errSecUserCanceled: return "errSecUser: Canceled"
+        case errSecBadReq: return "errSecBad: Req"
+        case errSecInternalComponent: return "errSecInternal: Component"
+        case errSecCoreFoundationUnknown: return "errSecCoreFoundation: Unknown"
+        case errSecNotAvailable: return "errSecNot: Available"
+        case errSecReadOnly: return "errSecRead: Only"
+        case errSecAuthFailed: return "errSecAuth: Failed"
+        case errSecNoSuchKeychain: return "errSecNoSuch: Keychain"
+        case errSecInvalidKeychain: return "errSecInvalid: Keychain"
+        case errSecDuplicateKeychain: return "errSecDuplicate: Keychain"
+        case errSecDuplicateCallback: return "errSecDuplicate: Callback"
+        case errSecInvalidCallback: return "errSecInvalid: Callback"
+        case errSecDuplicateItem: return "errSecDuplicate: Item"
+        case errSecItemNotFound: return "errSecItemNot: Found"
+        case errSecBufferTooSmall: return "errSecBufferToo: Small"
+        case errSecDataTooLarge: return "errSecDataToo: Large"
+        case errSecNoSuchAttr: return "errSecNoSuch: Attr"
+        case errSecInvalidItemRef: return "errSecInvalidItem: Ref"
+        case errSecInvalidSearchRef: return "errSecInvalidSearch: Ref"
+        case errSecNoSuchClass: return "errSecNoSuch: Class"
+        case errSecNoDefaultKeychain: return "errSecNoDefault: Keychain"
+        case errSecInteractionNotAllowed: return "errSecInteractionNot: Allowed"
+        case errSecReadOnlyAttr: return "errSecReadOnly: Attr"
+        case errSecWrongSecVersion: return "errSecWrongSec: Version"
+        case errSecKeySizeNotAllowed: return "errSecKeySizeNot: Allowed"
+        case errSecNoStorageModule: return "errSecNoStorage: Module"
+        case errSecNoCertificateModule: return "errSecNoCertificate: Module"
+        case errSecNoPolicyModule: return "errSecNoPolicy: Module"
+        case errSecInteractionRequired: return "errSecInteraction: Required"
+        case errSecDataNotAvailable: return "errSecDataNot: Available"
+        case errSecDataNotModifiable: return "errSecDataNot: Modifiable"
+        case errSecCreateChainFailed: return "errSecCreateChain: Failed"
+        case errSecACLNotSimple: return "errSecACLNot: Simple"
+        case errSecPolicyNotFound: return "errSecPolicyNot: Found"
+        case errSecInvalidTrustSetting: return "errSecInvalidTrust: Setting"
+        case errSecNoAccessForItem: return "errSecNoAccessFor: Item"
+        case errSecInvalidOwnerEdit: return "errSecInvalidOwner: Edit"
+        case errSecTrustNotAvailable: return "errSecTrustNot: Available"
+        case errSecUnsupportedFormat: return "errSecUnsupported: Format"
+        case errSecUnknownFormat: return "errSecUnknown: Format"
+        case errSecKeyIsSensitive: return "errSecKeyIs: Sensitive"
+        case errSecMultiplePrivKeys: return "errSecMultiplePriv: Keys"
+        case errSecPassphraseRequired: return "errSecPassphrase: Required"
+        case errSecInvalidPasswordRef: return "errSecInvalidPassword: Ref"
+        case errSecInvalidTrustSettings: return "errSecInvalidTrust: Settings"
+        case errSecNoTrustSettings: return "errSecNoTrust: Settings"
+        case errSecPkcs12VerifyFailure: return "errSecPkcs12Verify: Failure"
+        case errSecDecode: return "errSec: Decode"
+        case -34018: return "errSec: Something weird with tests/hosts, gl."
+        default:
+            return "unknown err sec code: \(self)"
+        }
     }
 }
 
