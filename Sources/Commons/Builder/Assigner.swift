@@ -29,21 +29,8 @@ extension Builder {
             })
         }
 
-//        public func callAsFunction(_ val: @escaping (Model) -> Value) -> Builder<Model> {
-//            let kp = self.kp
-//            return ref.add(step: { ob in
-//                ob[keyPath: kp] = val
-//            })
-//        }
-//        public func callAsFunction(_ from: @escaping (Model) -> Value) -> Builder<Model> {
-//            let kp = self.kp
-//            return self.ref.add(step: { model in
-//                model[keyPath: kp] = from(model)
-//            })
-//        }
-
-
         public var map: Map { Map(assigner: self) }
+
         public struct Map {
             fileprivate let assigner: Assigner<Value>
 
@@ -53,48 +40,6 @@ extension Builder {
                 return assigner(mapped)
             }
         }
-//
-//        public func callAsFunction(_ from: @escaping () -> Builder<Value>) -> Builder<Model> {
-//            let kp = self.kp
-//            return self.ref.add(step: { model in
-//            })
-//        }
-
-//        var model: UsingModel {
-//            UsingModel(assigner: self)
-//        }
-
-//        var build: SubBuilder {
-//            SubBuilder(assigner: self)
-//        }
-
-//        public struct Builder {
-//            private let assigner: Assigner<Value>
-//            public var usingModel: UsingModel { .init(assigner: assigner) }
-//        }
-//
-        public struct UsingModel {
-            fileprivate let assigner: Assigner<Value>
-
-            public func callAsFunction(_ from: @escaping (Model) -> Value) -> Builder<Model> {
-                let kp = assigner.kp
-                return assigner.ref.add(step: { model in
-                    model[keyPath: kp] = from(model)
-                })
-            }
-        }
-//
-//        public struct SubBuilder {
-//            private let assigner: Assigner<Value>
-//
-//            public func callAsFunction(_ from: @escaping () -> Builder<Value>) -> Builder<Model> {
-//                let kp = assigner.kp
-//                return assigner.ref.add(step: { model in
-//                    model[keyPath: kp] = from().make()
-//                })
-//            }
-//        }
-
 
         /// todo:
         ///         pass.if(credentials.contain(.admin)).then(.admin).else(.public)

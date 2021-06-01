@@ -1,6 +1,9 @@
 extension Builder {
     /// an assigner is returned from keypaths by the builder with
     /// the metadata required to set corresponding attribute
+    ///
+    /// if a property is a let constant, but a reference type, this allows us to link
+    /// to the writeable keypaths of that constant
     @dynamicMemberLookup
     public final class Link<Value> {
 

@@ -6,10 +6,7 @@ public protocol ValidatingModel {
 
 extension Builder where Model: ValidatingModel {
     public func callAsFunction() throws -> Model {
-        var new = constructor()
-        buildSteps.forEach { setter in
-            setter(&new)
-        }
+        let new = _make()
         let answer = new.isReady
         guard answer.ready else { throw answer.help }
         return new

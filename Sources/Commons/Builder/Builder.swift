@@ -41,6 +41,10 @@ public struct Builder<Model> {
 
     /// creates a new model with the current build instructions
     public func callAsFunction() -> Model {
+        _make()
+    }
+
+    internal func _make() -> Model {
         var new = constructor()
         buildSteps.forEach { setter in
             setter(&new)
@@ -51,11 +55,14 @@ public struct Builder<Model> {
 
 
 extension Builder where Model: AnyObject {
+    /// instead of building, we can apply changes to a reference type
+    /// this is mostly syntax sugar
     public func apply() {
         _ = self()
     }
 }
 
+/// behavior encapsulation for steps as they're applied to the model
 open class BuildStep<Model> {
     private let backing: (inout Model) -> Void
 
