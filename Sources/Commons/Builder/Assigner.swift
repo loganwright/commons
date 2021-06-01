@@ -1,3 +1,11 @@
+/**
+ /Users/loganwright/Desktop/commons/Sources/Commons/Builder/Assigner.swift:17:21: note: found this candidate
+         public func callAsFunction(_ val: Value) -> Builder<Model> {
+                     ^
+ /Users/loganwright/Desktop/commons/Sources/Commons/Builder/Assigner.swift:24:21: note: found this candidate
+         public func callAsFunction(_ from: @escaping (Model) -> Value) -> Builder<Model> {
+ */
+
 extension Builder {
     /// an assigner is returned from keypaths by the builder with
     /// the metadata required to set corresponding attribute
@@ -21,19 +29,71 @@ extension Builder {
             })
         }
 
-        public func callAsFunction(_ from: @escaping (Model) -> Value) -> Builder<Model> {
-            let kp = self.kp
-            return self.ref.add(step: { model in
-                model[keyPath: kp] = from(model)
-            })
-        }
+//        public func callAsFunction(_ val: @escaping (Model) -> Value) -> Builder<Model> {
+//            let kp = self.kp
+//            return ref.add(step: { ob in
+//                ob[keyPath: kp] = val
+//            })
+//        }
+//        public func callAsFunction(_ from: @escaping (Model) -> Value) -> Builder<Model> {
+//            let kp = self.kp
+//            return self.ref.add(step: { model in
+//                model[keyPath: kp] = from(model)
+//            })
+//        }
 
-        public func callAsFunction(_ from: @escaping () -> Builder<Value>) -> Builder<Model> {
-            let kp = self.kp
-            return self.ref.add(step: { model in
-                model[keyPath: kp] = from().make()
-            })
+
+        public var map: Map { Map(assigner: self) }
+        public struct Map {
+            fileprivate let assigner: Assigner<Value>
+
+            public func callAsFunction(_ map: @escaping (Model) -> Value) -> Builder<Model> {
+                let currentModel = assigner.ref.make()
+                let mapped = map(currentModel)
+                return assigner(mapped)
+            }
         }
+//
+//        public func callAsFunction(_ from: @escaping () -> Builder<Value>) -> Builder<Model> {
+//            let kp = self.kp
+//            return self.ref.add(step: { model in
+//            })
+//        }
+
+//        var model: UsingModel {
+//            UsingModel(assigner: self)
+//        }
+
+//        var build: SubBuilder {
+//            SubBuilder(assigner: self)
+//        }
+
+//        public struct Builder {
+//            private let assigner: Assigner<Value>
+//            public var usingModel: UsingModel { .init(assigner: assigner) }
+//        }
+//
+        public struct UsingModel {
+            fileprivate let assigner: Assigner<Value>
+
+            public func callAsFunction(_ from: @escaping (Model) -> Value) -> Builder<Model> {
+                let kp = assigner.kp
+                return assigner.ref.add(step: { model in
+                    model[keyPath: kp] = from(model)
+                })
+            }
+        }
+//
+//        public struct SubBuilder {
+//            private let assigner: Assigner<Value>
+//
+//            public func callAsFunction(_ from: @escaping () -> Builder<Value>) -> Builder<Model> {
+//                let kp = assigner.kp
+//                return assigner.ref.add(step: { model in
+//                    model[keyPath: kp] = from().make()
+//                })
+//            }
+//        }
 
 
         /// todo:
