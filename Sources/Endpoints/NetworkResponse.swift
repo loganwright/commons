@@ -63,25 +63,25 @@ extension Result where Success == NetworkResponse, Failure == Error {
 }
 
 // todo: rm?
-func makeQueryString(parameters: [String: Any]) -> String {
-    var params: [(key: String, val: Any)] = []
-    parameters.forEach { k, v in
-        if let array = v as? [Any] {
-            array.forEach { v in
-                params.append((k, v))
-            }
-        } else {
-            params.append((k, v))
-        }
-    }
-    let query = params.map { param in param.key + "=\(param.val)" }
-        .sorted(by: <)
-        .joined(separator: "&")
-    // todo: fallback to percent fail onto original query
-    // verify ideal behavior
-    return query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
-        ?? query
-}
+//func makeQueryString(parameters: [String: Any]) -> String {
+//    var params: [(key: String, val: Any)] = []
+//    parameters.forEach { k, v in
+//        if let array = v as? [Any] {
+//            array.forEach { v in
+//                params.append((k, v))
+//            }
+//        } else {
+//            params.append((k, v))
+//        }
+//    }
+//    let query = params.map { param in param.key + "=\(param.val)" }
+//        .sorted(by: <)
+//        .joined(separator: "&")
+//    // todo: fallback to percent fail onto original query
+//    // verify ideal behavior
+//    return query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+//        ?? query
+//}
 
 extension Dictionary where Key == String, Value == String {
     fileprivate func combined(with rhs: Dictionary?, overwrite: Bool = true) -> Dictionary {
