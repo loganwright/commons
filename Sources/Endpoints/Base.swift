@@ -1,12 +1,33 @@
 import Foundation
 import Commons
 
+extension String {
+    fileprivate var urlcomponents: URLComponents {
+        URLComponents(string: self)!
+    }
+}
+extension URLComponents {
+    fileprivate var baseUrl: String {
+        scheme! + "://" + host!
+    }
+    
+    fileprivate var _query: JSON? {
+        guard let items = queryItems else { return nil }
+        var obj = [String: JSON]()
+        items.forEach { item in
+            obj[item.name] = item.value.flatMap(JSON.str) ?? .null
+        }
+        return .obj(obj)
+    }
+}
+
 @dynamicMemberLookup
 public class Base {
     public private(set) var baseUrl: String
     public var _method: HTTPMethod = .get
     public var _path: String = ""
     public var _headers: [String: String] = [:]
+    public var _query: JSON? = nil
     public var _body: JSON? = nil
 
     // additional attributes
@@ -14,7 +35,10 @@ public class Base {
     private lazy var session: URLSession = URLSession(configuration: .default)
 
     public init(_ url: String) {
-        self.baseUrl = url
+        let comps = url.urlcomponents
+        self.baseUrl = comps.baseUrl
+        self._path = comps.path
+        self._query = comps._query
     }
 
     // MARK: PathBuilder
@@ -69,17 +93,17 @@ public class Base {
 
     // MARK: BodyBuilder
 
-    public var query: BodyBuilder {
+    public var query: ObjBuilder {
+        if _method != .get {
+            // in practice however, it's a bit different
+            Log.warn("query is traditionally disallowed on anything but a `get` request")
+        }
         assert(_method == .get, "query only allowed on get requests")
-        return BodyBuilder(self)
+        return ObjBuilder(self, kp: \._query)
     }
 
-    public var body: BodyBuilder { BodyBuilder(self) }
-
-    fileprivate func set(body: JSON) -> Self {
-        assert(self._body == nil)
-        self._body = body
-        return self
+    public var body: ObjBuilder {
+        ObjBuilder(self, kp: \._body)
     }
 
     // MARK: Handlers
@@ -150,6 +174,10 @@ public class Base {
                                  timeoutInterval: _timeout)
         request.allHTTPHeaderFields = _headers
         request.httpMethod = _method.rawValue
+        if _method == .get, _body != nil {
+            Log.warn("body ignored on GET request")
+        }
+        
         if _method != .get, let body = _body {
             let body = try body.encoded()
             request.setBody(json: body)
@@ -164,8 +192,11 @@ public class Base {
         } else {
             url += _path
         }
-        guard _method == .get, let query = _body else { return url }
-        if url.hasSuffix("/") { url.removeLast() }
+        
+        if _method != .get, _query != nil {
+            Log.warn("non-get requests may not support query params")
+        }
+        guard let query = _query else { return url }
         return url + "?" + makeQueryString(parameters: query)
     }
 
@@ -245,14 +276,16 @@ public class Base {
     }
 }
 
-// MARK: Body Builder
+// MARK: ObjBuilder
 
 @dynamicCallable
-public class BodyBuilder {
+public class ObjBuilder {
     public let base: Base
-
-    fileprivate init(_ base: Base) {
+    public let kp: ReferenceWritableKeyPath<Base, JSON?>
+    
+    fileprivate init(_ base: Base, kp: ReferenceWritableKeyPath<Base, JSON?>) {
         self.base = base
+        self.kp = kp
     }
 
     public func dynamicallyCall<T: Encodable>(withArguments args: [T]) -> Base {
@@ -264,12 +297,14 @@ public class BodyBuilder {
         } else {
             body = args.json!
         }
-        return base.set(body: body)
+        base[keyPath: kp] = body
+        return base
     }
 
     public func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Any>) -> Base {
         let body = JSON(args)
-        return base.set(body: body)
+        base[keyPath: kp] = body
+        return base
     }
 }
 

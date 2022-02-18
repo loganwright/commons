@@ -1,7 +1,16 @@
 import XCTest
 @testable import Commons
+@testable import Endpoints
 
 final class BuilderTests: XCTestCase {
+    func testUrlParts() {
+        let raw = "https://api-test.padcaster-core.com/api/v0/files/commit/?args=%7B%22user%22%3A+1%2C+%22file%22%3A+114%2C+%22target%22%3A+5%2C+%22name%22%3A+%22BigBuckBunny.ogv+-+COPY+-+1%22%7D.1645788163.5bf321ca3e683807aee13904a536c614c7be1710b0f3362eba92d487d0d43bc5"
+        let base = Base(raw)
+        XCTAssertEqual(base.baseUrl, "https://api-test.padcaster-core.com")
+        XCTAssertEqual(base._path, "/api/v0/files/commit/")
+        XCTAssert(base._query?.args?.string?.isEmpty == false)
+    }
+    
     func testBuilder() {
         struct Ob {
             var a = ""
