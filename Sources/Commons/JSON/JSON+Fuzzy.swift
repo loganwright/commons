@@ -1,17 +1,18 @@
 import Foundation
 
 extension JSON {
+    /// for cases where need to interact with old apis
     public var any: AnyObject? {
         switch self {
         case .int(let val):
             return val as AnyObject
         case .double(let val):
             return val as AnyObject
-        case .str(let val):
+        case .string(let val):
             return val as AnyObject
         case .bool(let val):
             return val as AnyObject
-        case .obj(let val):
+        case .object(let val):
             var any: [String: Any] = [:]
             val.forEach { k, v in
                 any[k] = v.any
@@ -26,6 +27,9 @@ extension JSON {
 }
 
 extension JSON {
+    /// makes a best effort to convert
+    /// an object into JSON in a logical way
+    /// ideally avoid these types
     public init(fuzzy: Any) throws {
         if let data = fuzzy as? Data {
             self = try data.decode()
@@ -38,9 +42,19 @@ extension JSON {
         }
     }
 
+    /// makes a best effort to create a JSON\
+    /// object from the given nsobject
+    ///
+    /// if it isn't a standard object, we then
+    /// use the objc encoder and the swift decoder
+    /// to passthrough json
+    ///
+    /// this isn't the most ideal,
+    /// but is more consistently good results,
+    /// and is rarely used anyways
     public init(nsobj: NSObject) throws {
         if let dict = nsobj as? NSDictionary {
-            var obj = JSON.emptyObj
+            var obj: JSON = [:]
             try dict.forEach { k, v in
                 obj["\(k)"] = try .init(fuzzy: v)
             }
@@ -59,7 +73,7 @@ extension JSON {
 
 extension JSON {
     public init(_ kvp: KeyValuePairs<String, Any>) {
-        var ob = JSON.emptyObj
+        var ob = JSON.empty
         kvp.forEach { k, v in
             do {
                 ob[k] = try JSON(fuzzy: v)

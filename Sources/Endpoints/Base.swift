@@ -52,9 +52,9 @@ extension URLComponents {
         guard let items = queryItems else { return nil }
         var obj = [String: JSON]()
         items.forEach { item in
-            obj[item.name] = item.value.flatMap(JSON.str) ?? .null
+            obj[item.name] = item.value.flatMap(JSON.string) ?? .null
         }
-        return .obj(obj)
+        return .object(obj)
     }
 }
 
@@ -326,7 +326,7 @@ public class Base: Codable {
     let queryArrayEncodingStrategy: QueryArrayEncodingStrategy = .commaSeparated
 
     func makeQueryString(parameters: JSON) -> String {
-        guard let object = parameters.obj else {
+        guard let object = parameters.object else {
             fatalError("object required for query params")
         }
         switch queryArrayEncodingStrategy {
@@ -410,7 +410,7 @@ public class ObjBuilder {
     public func dynamicallyCall<T: Encodable>(withArguments args: [T]) -> Base {
         let body: JSON
         if args.isEmpty {
-            body = JSON.emptyObj
+            body = [:]
         } else if args.count == 1 {
             body = try! args[0].convert()
         } else {

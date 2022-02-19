@@ -15,7 +15,7 @@ public struct ModifyBody: Middleware {
         do {
             var resp = try result.get()
             let new = try modifier(resp.json)
-            resp.replaceBody(with: new ?? .null)
+            resp.json = new
             next(.success(resp))
         } catch {
             next(result)

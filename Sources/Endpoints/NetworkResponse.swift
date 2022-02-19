@@ -60,11 +60,12 @@ public struct NetworkResponse: Codable {
 
 extension NetworkResponse {
     public var json: JSON? {
-        catching { try body?.decode() }
-    }
-    
-    public mutating func replaceBody(with: JSON) {
-        body = catching { try with.encode() }
+        get {
+            catching { try body?.decode() }
+        }
+        set {
+            body = catching { try newValue.encode() }
+        }
     }
 }
 

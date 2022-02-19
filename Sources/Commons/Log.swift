@@ -98,6 +98,8 @@ public struct Entry: Codable {
     let crumb: BreadCrumb
     let msg: String
     
+    var display: String { crumb.tag + msg }
+    
     subscript<T>(dynamicMember kp: KeyPath<BreadCrumb, T>) -> T {
         crumb[keyPath: kp]
     }
@@ -127,7 +129,7 @@ public struct StandardLog: LogOutput {
     
     public func log(_ entry: Entry) {
         guard levels.contains(entry.level) else { return }
-        Swift.print(entry.msg)
+        Swift.print(entry.display)
     }
 }
 
@@ -226,8 +228,8 @@ extension Int {
         guard spaces > 1 else { return description }
         let str = self.description
         guard str.count < spaces else { return str }
-        let padding = String(repeating: "0", count: (str.count - spaces))
-        if self > 0 {
+        let padding = String(repeating: "0", count: (spaces - str.count))
+        if self >= 0 {
             return padding + str
         } else {
             return "-" + abs(self).display(spaces: spaces)

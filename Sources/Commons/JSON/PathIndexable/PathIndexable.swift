@@ -1,4 +1,3 @@
-
 /**
  Objects wishing to inherit complex subscripting should implement
  this protocol
@@ -86,12 +85,36 @@ extension Int: PathIndexer {
         - see: PathIndex
     */
     public func set<T: PathIndexable>(_ input: T?, to parent: inout T) {
-        guard let array = parent.pathIndexableArray else { return }
-        guard self < array.count else { return }
+        guard let array = parent.pathIndexableArray else {
+            Log.warn("trying to set index, array not available")
+            return }
+        guard self <= array.count else {
+            Log.error("array index out of range: \(self) (total: \(array.count))")
+            return
+        }
         
         var mutable = array
         if let new = input {
-            mutable[self] = new
+            if self < mutable.count {
+                mutable[self] = new
+            } else if self == mutable.count {
+                mutable.append(new)
+            } else {
+                Log.error("invalid index: \(self) for array: \(array)")
+            }
+            
+//            if let input = input {
+//                if index < mapped.count {
+//                    mapped[index] = input
+//                } else if index == mapped.count {
+//                    mapped.append(input)
+//                } else {
+//                    Log.error("invalid index: \(index) for array: \(array)")
+//                }
+//            } else {
+//                mapped.remove(at: index)
+//            }
+//            mutable[self] = new
         } else {
             mutable.remove(at: self)
         }
@@ -103,24 +126,40 @@ extension Int: PathIndexer {
     }
 }
 
+extension String {
+    fileprivate var index: Int? {
+        if let i = Int(self) {
+            return i
+        } else if self.hasPrefix("_"), let i = Int(self.dropFirst()) {
+            return i
+        } else {
+            // other's or different ones?
+            return nil
+        }
+    }
+}
+
 extension String: PathIndexer {
     /**
         - see: PathIndex
     */
     public func get<T: PathIndexable>(from indexable: T) -> T? {
         if let object = indexable.pathIndexableObject?[self] {
+            Log.debug("getting object: \(self)")
             return object
         } else if let array = indexable.pathIndexableArray {
-            // Index takes precedence
-            if let idx = Int(self), idx < array.count {
-                return array[idx]
+            Log.debug("getting array: \(self)")
+            if let index = self.index, index < array.count {
+                return array[index]
             }
 
+            // else, get array of keypath
             let value = array.compactMap(self.get)
             guard !value.isEmpty else { return nil }
             return type(of: indexable).init(value)
         }
 
+        Log.debug("getting nil: \(self)")
         return nil
     }
 
@@ -129,14 +168,37 @@ extension String: PathIndexer {
     */
     public func set<T: PathIndexable>(_ input: T?, to parent: inout T) {
         if let object = parent.pathIndexableObject {
+            Log.debug("setting obj: \(self)")
+            if self == "_1" {
+                Log.critical("oh noooo")
+            }
             var mutable = object
             mutable[self] = input
             parent = type(of: parent).init(mutable)
         } else if let array = parent.pathIndexableArray {
-            let mapped: [T] = array.map { val in
-                var mutable = val
-                self.set(input, to: &mutable)
-                return mutable
+            Log.debug("setting arr: \(self)")
+            Log.warn("CLARIFY SETTING AREA FOR STRINGS TO ARRAYS")
+            // check if sub items have keys?
+            var mapped = array
+            if let index = self.index {
+                index.set(input, to: &parent)
+//                if let input = input {
+//                    if index < mapped.count {
+//                        mapped[index] = input
+//                    } else if index == mapped.count {
+//                        mapped.append(input)
+//                    } else {
+//                        Log.error("invalid index: \(index) for array: \(array)")
+//                    }
+//                } else {
+//                    mapped.remove(at: index)
+//                }
+            } else {
+                mapped = array.map { val in
+                    var mutable = val
+                    self.set(input, to: &mutable)
+                    return mutable
+                }
             }
             parent = type(of: parent).init(mapped)
         }
@@ -144,6 +206,7 @@ extension String: PathIndexer {
 
 
     public func makeEmptyStructureForIndexing<T: PathIndexable>() -> T {
+        Log.debug("making empty structure: \(self)")
         return T([:])
     }
 

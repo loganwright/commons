@@ -1,46 +1,5 @@
-//
-//  BasicTypes.swift
-//  Genome
-//
-//  Created by Logan Wright on 9/19/15.
-//  Copyright © 2015 lowriDevs. All rights reserved.
-//
-
 import XCTest
 @testable import Commons
-
-//enum json {
-//    case null
-//    case bool(Bool)
-//    case number(Double)
-//    case string(String)
-//    case array([json])
-//    case object([String:json])
-//}
-//
-//extension json: PathIndexable {
-//    var pathIndexableArray: [json]? {
-//        guard case let .array(arr) = self else {
-//            return nil
-//        }
-//        return arr
-//    }
-//
-//    var pathIndexableObject: [String: json]? {
-//        guard case let .object(ob) = self else {
-//            return nil
-//        }
-//        return ob
-//    }
-//
-//    init(_ array: [json]) {
-//        self = .array(array)
-//    }
-//
-//    init(_ object: [String: json]) {
-//        self = .object(object)
-//    }
-//}
 
 class PathIndexableTests: XCTestCase {
     func testString() {
@@ -51,7 +10,7 @@ class PathIndexableTests: XCTestCase {
             XCTFail()
             return
         }
-        guard case let .str(val) = json else {
+        guard case let .string(val) = json else {
             XCTFail()
             return
         }
@@ -80,7 +39,7 @@ class PathIndexableTests: XCTestCase {
             XCTFail()
             return
         }
-        guard case let .str(val) = json else {
+        guard case let .string(val) = json else {
             XCTFail()
             return
         }
@@ -104,7 +63,7 @@ class PathIndexableTests: XCTestCase {
             return
         }
 
-            let mapped: [Double] = value.compactMap(\.double)
+        let mapped: [Double] = value.compactMap(\.double)
         XCTAssert(mapped == [0,1,2,3])
     }
 
@@ -116,7 +75,7 @@ class PathIndexableTests: XCTestCase {
             XCTFail()
             return
         }
-        guard case let .str(value) = json else {
+        guard case let .string(value) = json else {
             XCTFail()
             return
         }
@@ -136,7 +95,7 @@ class PathIndexableTests: XCTestCase {
             XCTFail()
             return
         }
-        guard case let .str(value) = json else {
+        guard case let .string(value) = json else {
             XCTFail()
             return
         }
@@ -223,7 +182,7 @@ class PathIndexableTests: XCTestCase {
                     ]
                 ]
 
-        if let n = json[path], case let .str(result) = n {
+        if let n = json[path], case let .string(result) = n {
             XCTAssert(result == "d")
         } else {
             XCTFail("Expected result")
@@ -241,8 +200,7 @@ class PathIndexableTests: XCTestCase {
             ]
         ]
         
-        if let n = json[DotKey("foo.bar"), 3], case let .str(result) = n {
-            print(result)
+        if let n = json[DotKey("foo.bar"), 3], case let .string(result) = n {
             XCTAssert(result == "d")
         } else {
             XCTFail("Expected result")

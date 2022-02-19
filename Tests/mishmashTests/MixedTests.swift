@@ -10,37 +10,83 @@ class LogTests: XCTestCase {
     }
 }
 
+class MiscTests: XCTestCase {
+    func testPreconditionStuffs() {
+        /// #file => #filePath || #fileID
+        let preconditions = [
+            #fileID.description,
+            #filePath.description,
+            #line.description,
+            #function.description,
+            #column.description,
+            "\(#dsohandle)",
+        ]
+        Log.info("preconditions: \(preconditions)")
+    }
+}
+
 class JSONDataTests: XCTestCase {
-    func testDataJSON() throws {
-        let raw = """
-        {
-            "a": "here's a string",
-            "b": "here's anothaaaa",
-            "c": 8332,
-            "e": [
-                {
-                    "nesteda": "mohmoh",
-                    "nestedb": 111.444
-                }
-            ]
+    func testJSONLisAccess() throws {
+        let arr: [JSON] = (1...10).map { idx in
+            ["luckyNumber": .int(idx)]
         }
-        """
-        
-        let data = raw.data
-        let deco = try JSON.decode(data)
-        let str = JSON.str(raw)
-        
-        let edata = try data.encode()
-        let edeco = try deco.encode()
-        let estr = try str.encode()
-        // this appears a json limitation
-        Log.error("I think this is ok, you just need to know if your obj is jsondata or str")
-        
-//        XCTAssertEqual(edata, edeco)
-//        XCTAssertEqual(estr, edeco)
+        let wrapped = JSON.array(arr)
+        XCTAssertEqual(wrapped.array?.count, wrapped.luckyNumber?.array?.count)
     }
     
-    func testJsonLinkedPathTests() throws {
+    func testSimpleNestedArray() {
+        var json = [
+            "lista": [
+                [
+                    "a": 1
+                ],
+                [
+                    "a": 2
+                ]
+            ]
+        ] as JSON
+        
+        let val = json.lista._1.a?.int
+        XCTAssertEqual(val, 2)
+        json.lista._1.newKey = "updated"
+        let new = json.lista._1.newKey?.string ?? "<>"
+        XCTAssertEqual(new, "updated")
+    }
+    
+    func testArray() {
+        var ints = [1, 2, 3, 4]
+        ints[3] = 5
+        Log.info(ints)
+    }
+    
+    func testNestedArrays() {
+        var nested = [
+            "another": [
+                [
+                    "long": [
+                        "nesting": [
+                            0, 1, 2, 3
+                        ]
+                    ]
+                ]
+            ]
+        ] as JSON
+
+
+        Log.info(nested)
+        nested.another._0.long.these.are.all.new = "huzzahhhh"
+        Log.info("*****")
+        Log.info(nested)
+        XCTAssertEqual(nested.another._0.long.these.are.all.new, "huzzahhhh")
+        Log.info("")
+        //        XCTAssertNotNil(nested.another.array?.isEmpty == false)
+        //        Log.info(nested.another.array?.count)
+        //
+        //        let value = nested.another._0.long.nesting._2?.int
+        //        XCTAssertEqual(value, 2)
+    }
+    
+    func testJSONLinkedPathTests() throws {
         var json = [
             "here": [
                 "is": [
@@ -55,6 +101,7 @@ class JSONDataTests: XCTestCase {
             ]
         ] as JSON
         
+//        let _ = json.here
         let found = json.here.is.a.very.long.path?.string
         XCTAssertEqual(found, "<3")
         let nnneeewww = "nnneeewww"
@@ -107,14 +154,3 @@ class CodableStorageTests: XCTestCase {
     }
 }
 
-//class GennyTests: XCTestCase {
-//    func testBasic() {
-//        Log.trace("real basic")
-//        print()
-//    }
-//    func testPow() {
-//        let 8 = 8.display
-//        let zero = pow(10, 0)
-//        Log.info(zero)
-//    }
-//}

@@ -24,15 +24,15 @@ extension JSON: ExpressibleByFloatLiteral {
 
 extension JSON: ExpressibleByStringLiteral {
     public init(unicodeScalarLiteral value: String) {
-        self = .str(value)
+        self = .string(value)
     }
 
     public init(extendedGraphemeClusterLiteral value: String) {
-        self = .str(value)
+        self = .string(value)
     }
 
     public init(stringLiteral value: String) {
-        self = .str(value)
+        self = .string(value)
     }
 }
 
@@ -48,7 +48,7 @@ extension JSON: ExpressibleByDictionaryLiteral {
         elements.forEach { key, value in
             new[key] = value
         }
-        self = .obj(new)
+        self = .object(new)
     }
 }
 

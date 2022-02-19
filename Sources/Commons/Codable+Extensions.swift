@@ -1,11 +1,6 @@
 import Foundation
 
-extension Data {
-    public func decode<D: Decodable>(_ type: D.Type = D.self,
-                                     strategy: JSONDecoder.KeyDecodingStrategy = .convertFromSnakeCase) throws -> D {
-        try D.decode(self)
-    }
-}
+// MARK: Codable
 
 extension Decodable {
     public static func decode(_ data: Data, strategy: JSONDecoder.KeyDecodingStrategy = .convertFromSnakeCase) throws -> Self {
@@ -25,25 +20,32 @@ extension Encodable {
     }
 }
 
+// MARK: Data
+
+extension Data {
+    public func decode<D: Decodable>(_ type: D.Type = D.self,
+                                     strategy: JSONDecoder.KeyDecodingStrategy = .convertFromSnakeCase) throws -> D {
+        try D.decode(self)
+    }
+}
+
 // MARK: Conversions
 
 extension Encodable {
-    func convert<D: Decodable>(to: D.Type = D.self) throws -> D {
+    /// these methods are likely not super performant
+    /// but they are a convenient way to exchange between
+    /// any codable types using JSON as a medium
+    ///
+    /// if the entire object isn't coded, it may lose data
+    ///
+    /// things such as out of order dictionaries may still happen
+    public func convert<D: Decodable>(to: D.Type = D.self) throws -> D {
         try self.encode().decode()
     }
 }
 
 extension Decodable {
-    static func convert<E: Encodable>(from: E) throws -> Self {
+    public static func convert<E: Encodable>(from: E) throws -> Self {
         try from.encode().decode()
     }
 }
-
-//extension Encodable {
-//    public var anyobj: AnyObject? {
-//        /// we could probably take some of this out, it was originally stitching for other systems to transition with
-//        let data = try? self.encoded()
-//        let json = data.flatMap { try? JSONSerialization.jsonObject(with: $0, options: []) }
-//        return json as AnyObject?
-//    }
-//}

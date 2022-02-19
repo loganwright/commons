@@ -4,7 +4,7 @@ extension JSON: PathIndexable {
     }
     
     public var pathIndexableObject: [String : JSON]? {
-        obj
+        object
     }
     
     public init(_ array: [JSON]) {
@@ -12,6 +12,6 @@ extension JSON: PathIndexable {
     }
     
     public init(_ object: [String : JSON]) {
-        self = .obj(object)
+        self = .object(object)
     }
 }
