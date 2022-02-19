@@ -223,19 +223,6 @@ extension Date {
     }
 }
 
-extension Int {
-    fileprivate func display(spaces: Int) -> String {
-        guard spaces > 1 else { return description }
-        let str = self.description
-        guard str.count < spaces else { return str }
-        let padding = String(repeating: "0", count: (spaces - str.count))
-        if self >= 0 {
-            return padding + str
-        } else {
-            return "-" + abs(self).display(spaces: spaces)
-        }
-    }
-}
 
 // MARK: Precondition Formatting
 

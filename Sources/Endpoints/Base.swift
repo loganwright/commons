@@ -20,7 +20,7 @@ final class VCR {
     }
 }
 
-final class VVVVCR: RequestTask {
+final class VVVVCR: Client {
     func callAsFunction(_ base: Base, _ continuation: @escaping NetworkCompletion) {
         
     }
@@ -58,8 +58,16 @@ extension URLComponents {
     }
 }
 
-extension URLSession {
-    func send(_ request: URLRequest, completion: @escaping (NetworkResult) -> Void) {
+extension URLSession: Client {
+    public func callAsFunction(_ base: Base, _ continuation: @escaping NetworkCompletion) {
+        do {
+            let request = try base.makeRequest()
+            send(request, completion: continuation)
+        } catch {
+            continuation(.failure(error))
+        }
+    }
+    public func send(_ request: URLRequest, completion: @escaping (NetworkResult) -> Void) {
         self.dataTask(with: request) { (data, response, error) in
             main {
                 completion(.init(response as? HTTPURLResponse, body: data, error: error))
@@ -69,40 +77,9 @@ extension URLSession {
     }
 }
 
-public protocol RequestTask {
+public protocol Client {
     func callAsFunction(_ base: Base, _ continuation: @escaping NetworkCompletion)
 }
-//
-//typealias Dispatch = (Base, @escaping NetworkCompletion) -> Void
-//
-//struct Header {
-//    let key: String
-//    let val: String
-//}
-//
-//extension Array where Element == Header {
-//    subscript(key: String) -> String? {
-//        get {
-//            self.first(where:\.key, matches: key)?.val
-//        }
-//        set {
-//            if let idx = firstIndex(where: \.key, matches: key) {
-//                if let new = newValue {
-//                    self[idx] = Header(key: key, val: new)
-//                } else {
-//                    self.remove(at: idx)
-//                }
-//            } else if let new = newValue {
-//                self.append(Header(key: key, val: new))
-//            }
-//        }
-//    }
-//}
-//
-//@propertyWrapper
-//struct Headers {
-//    var wrappedValue: [String: String]
-//}
 
 struct Timeout {
     init(file: String = #file, line: Int = #line, _ duration: TimeInterval, execute work: @escaping () -> Void) throws {
@@ -271,9 +248,9 @@ public class Base: Codable {
         requestTask(self, queue)
     }
     
-    public var requestTask: RequestTask = URLSessionRequestTask()
+    public var requestTask: Client = URLSessionRequestTask()
     
-    public struct URLSessionRequestTask: RequestTask {
+    public struct URLSessionRequestTask: Client {
         public func callAsFunction(_ base: Base, _ continuation: @escaping NetworkCompletion) {
             do {
                 let request = try base.makeRequest()

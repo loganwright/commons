@@ -160,9 +160,25 @@ public struct Geometry {
     }
 }
 
-
 extension CGRect {
     /// some view layouts crash if we raw w cgrect.zero, so this is better
     public static var sizing: CGRect { .init(x: 0, y: 0, width: 160, height: 160) }
 }
+
+// MARK: Debugging
+
+extension String.StringInterpolation {
+    public mutating func appendInterpolation(_ point: CGPoint) {
+        appendInterpolation("x.\(point.x), y.\(point.y)")
+    }
+    public mutating func appendInterpolation(_ size: CGSize) {
+        appendInterpolation("w.\(size.width), h.\(size.height)")
+    }
+    public mutating func appendInterpolation(_ rect: CGRect) {
+        appendInterpolation(rect.origin)
+        appendInterpolation(", ")
+        appendInterpolation(rect.size)
+    }
+}
+
 #endif

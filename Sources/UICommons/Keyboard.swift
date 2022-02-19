@@ -22,7 +22,7 @@ public final class KeyboardNotifications: NSObject {
 
 
     public func listen(with ob: AnyObject, _ listener: @escaping (KeyboardUpdate) -> Void) {
-        listeners.flush(whereNil: \.ob.value)
+        listeners.flush(whereNil: \.ob.wrappedValue)
         listeners.append((Weak(ob), listener))
     }
 
@@ -37,7 +37,7 @@ public final class KeyboardNotifications: NSObject {
     }
 
     public func remove(listenersFor ob: AnyObject) {
-        listeners.flush(where: \.ob.value, matches: ob)
+        listeners.flush(where: \.ob.wrappedValue, matches: ob)
     }
 
     private override init() {
@@ -57,7 +57,7 @@ public final class KeyboardNotifications: NSObject {
     }
 
     @objc private func keyboardWillChange(_ note: Notification) {
-        listeners.flush(whereNil: \.ob.value)
+        listeners.flush(whereNil: \.ob.wrappedValue)
         let message = note.keyboardAnimation
         self.last = message
         listeners.pass(each: \.listener, arg: message)
