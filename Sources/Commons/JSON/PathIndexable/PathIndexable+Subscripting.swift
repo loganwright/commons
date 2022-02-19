@@ -33,7 +33,6 @@ extension PathIndexable {
     public subscript(indexers: [PathIndexer]) -> Self? {
         get {
             let indexers = indexers.unwrap()
-            Log.debug("getting indexers: \(indexers)")
             /// if there's a next item, then the corresponding index
             /// for that item needs to access it.
             ///
@@ -44,7 +43,6 @@ extension PathIndexable {
         }
         set {
             let indexers = indexers.unwrap()
-            Log.debug("setting indexers: \(indexers)")
 
             guard let currentIndexer = indexers.first else { return }
             var indexersRemaining = indexers

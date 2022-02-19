@@ -53,12 +53,6 @@ class JSONDataTests: XCTestCase {
         XCTAssertEqual(new, "updated")
     }
     
-    func testArray() {
-        var ints = [1, 2, 3, 4]
-        ints[3] = 5
-        Log.info(ints)
-    }
-    
     func testNestedArrays() {
         var nested = [
             "another": [
@@ -73,17 +67,11 @@ class JSONDataTests: XCTestCase {
         ] as JSON
 
 
-        Log.info(nested)
-        nested.another._0.long.these.are.all.new = "huzzahhhh"
-        Log.info("*****")
-        Log.info(nested)
-        XCTAssertEqual(nested.another._0.long.these.are.all.new, "huzzahhhh")
-        Log.info("")
-        //        XCTAssertNotNil(nested.another.array?.isEmpty == false)
-        //        Log.info(nested.another.array?.count)
-        //
-        //        let value = nested.another._0.long.nesting._2?.int
-        //        XCTAssertEqual(value, 2)
+        let huzzah = "huzzahhhh"
+        nested.another._0.long.these.are.all.new = huzzah
+        XCTAssertEqual(nested.another._0.long.these.are.all.new, huzzah)
+        let value = nested.another._0.long.nesting._2?.int
+        XCTAssertEqual(value, 2)
     }
     
     func testJSONLinkedPathTests() throws {
@@ -101,7 +89,6 @@ class JSONDataTests: XCTestCase {
             ]
         ] as JSON
         
-//        let _ = json.here
         let found = json.here.is.a.very.long.path?.string
         XCTAssertEqual(found, "<3")
         let nnneeewww = "nnneeewww"

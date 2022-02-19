@@ -103,11 +103,12 @@ class PathIndexableTests: XCTestCase {
         XCTAssert(value == "b")
     }
 
-    func testOutOfBounds() {
+    func testAppendItem() {
         var array: JSON = [1.0, 2.0, 3.0]
         XCTAssertNil(array[3])
+        /// inserting next index appends
         array[3] = 4.0
-        XCTAssertNil(array[3])
+        XCTAssertNotNil(array[3])
     }
 
     func testSetArray() {
@@ -127,6 +128,7 @@ class PathIndexableTests: XCTestCase {
 
     func testAccessNil() {
         let array: JSON = [["test": 42], 5]
+        Log.info(type(of: array["foo"]))
         XCTAssertNil(array["foo"])
         
         if let keyValResult = array["test"], case let .array(array) = keyValResult {
@@ -167,7 +169,7 @@ class PathIndexableTests: XCTestCase {
         object["one.two"] = 5
         XCTAssertEqual(object["one.two"], 5)
 
-        let comps = "one.two.5.&".keyPathComponents()
+        let comps = "one.two.5.&".unwrapComponents() as! [String]
         XCTAssertEqual(comps, ["one", "two", "5", "&"])
     }
 

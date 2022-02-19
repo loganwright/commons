@@ -72,40 +72,36 @@ extension PathIndexer {
 }
 
 extension Int: PathIndexer {
-    /**
-        - see: PathIndex
-    */
     public func get<T: PathIndexable>(from indexable: T) -> T? {
-        guard let array = indexable.pathIndexableArray else { return nil }
-        guard self < array.count else { return nil }
-        return array[self]
+        if let array = indexable.pathIndexableArray, self < array.count {
+            return array[self]
+        } else if let object = indexable.pathIndexableObject {
+            return object[self.description]
+        } else {
+            return nil
+        }
     }
 
-    /**
-        - see: PathIndex
-    */
     public func set<T: PathIndexable>(_ input: T?, to parent: inout T) {
-        guard let array = parent.pathIndexableArray else {
-            Log.warn("trying to set index, array not available")
-            return }
-        guard self <= array.count else {
-            Log.error("array index out of range: \(self) (total: \(array.count))")
-            return
-        }
-        
-        var mutable = array
-        if let new = input {
-            if self < mutable.count {
-                mutable[self] = new
-            } else if self == mutable.count {
-                mutable.append(new)
+        if let _ = parent.pathIndexableObject {
+            self.description.set(input, to: &parent)
+        } else if let array = parent.pathIndexableArray {
+            var mutable = array
+            if let new = input {
+                if self < mutable.count {
+                    mutable[self] = new
+                } else if self == mutable.count {
+                    mutable.append(new)
+                } else {
+                    Log.error("invalid index: \(self) for array: \(array)")
+                }
             } else {
-                Log.error("invalid index: \(self) for array: \(array)")
+                mutable.remove(at: self)
             }
+            parent = type(of: parent).init(mutable)
         } else {
-            mutable.remove(at: self)
+            Log.error("unable to set \(String(describing: input)) to \(parent)")
         }
-        parent = type(of: parent).init(mutable)
     }
 
     public func makeEmptyStructureForIndexing<T: PathIndexable>() -> T {
@@ -113,7 +109,68 @@ extension Int: PathIndexer {
     }
 }
 
+extension String: PathIndexer {
+    public func get<T: PathIndexable>(from indexable: T) -> T? {
+        if let object = indexable.pathIndexableObject?[self] {
+            return object
+        } else if let array = indexable.pathIndexableArray {
+            if let index = self.index, index <= array.count {
+                return array[index]
+            } else {
+                // else, get array of values at each keypath
+                let value = array.compactMap(self.get)
+                // should this return `nil` or empty?
+                guard !value.isEmpty else { return nil }
+                return type(of: indexable).init(value)
+            }
+        } else {
+            return nil
+        }
+    }
+    
+    public func set<T: PathIndexable>(_ input: T?, to parent: inout T) {
+        if let object = parent.pathIndexableObject {
+            var mutable = object
+            mutable[self] = input
+            parent = type(of: parent).init(mutable)
+        } else if let array = parent.pathIndexableArray {
+            if let index = self.index {
+                index.set(input, to: &parent)
+            } else {
+                // set value at keypath for each item in array
+                var mapped = array
+                mapped = array.map { val in
+                    var mutable = val
+                    self.set(input, to: &mutable)
+                    return mutable
+                }
+                parent = type(of: parent).init(mapped)
+            }
+        } else {
+            Log.error("unable to set \(String(describing: input)) to \(parent)")
+        }
+    }
+
+
+    public func makeEmptyStructureForIndexing<T: PathIndexable>() -> T {
+        return T([:])
+    }
+
+    public func unwrapComponents() -> [PathIndexer] {
+        self.split(separator: ".")
+            .map(String.init)
+    }
+}
+
+// MARK: String Helpers
+
 extension String {
+    /// used to convert strings from keypath
+    /// to ints if possible
+    ///
+    ///     foo["these.0.numbers"]
+    ///     // or
+    ///     foo.these._0.numbers
     fileprivate var index: Int? {
         if let i = Int(self) {
             return i
@@ -126,89 +183,7 @@ extension String {
     }
 }
 
-extension String: PathIndexer {
-    /**
-        - see: PathIndex
-    */
-    public func get<T: PathIndexable>(from indexable: T) -> T? {
-        if let object = indexable.pathIndexableObject?[self] {
-            Log.debug("getting object: \(self)")
-            return object
-        } else if let array = indexable.pathIndexableArray {
-            Log.debug("getting array: \(self)")
-            if let index = self.index, index < array.count {
-                return array[index]
-            }
-
-            // else, get array of keypath
-            let value = array.compactMap(self.get)
-            guard !value.isEmpty else { return nil }
-            return type(of: indexable).init(value)
-        }
-
-        Log.debug("getting nil: \(self)")
-        return nil
-    }
-
-    /**
-        - see: PathIndex
-    */
-    public func set<T: PathIndexable>(_ input: T?, to parent: inout T) {
-        if let object = parent.pathIndexableObject {
-            Log.debug("setting obj: \(self)")
-            if self == "_1" {
-                Log.critical("oh noooo")
-            }
-            var mutable = object
-            mutable[self] = input
-            parent = type(of: parent).init(mutable)
-        } else if let array = parent.pathIndexableArray {
-            Log.debug("setting arr: \(self)")
-            Log.warn("CLARIFY SETTING AREA FOR STRINGS TO ARRAYS")
-            // check if sub items have keys?
-            if let index = self.index {
-                index.set(input, to: &parent)
-//                if let input = input {
-//                    if index < mapped.count {
-//                        mapped[index] = input
-//                    } else if index == mapped.count {
-//                        mapped.append(input)
-//                    } else {
-//                        Log.error("invalid index: \(index) for array: \(array)")
-//                    }
-//                } else {
-//                    mapped.remove(at: index)
-//                }
-            } else {
-                var mapped = array
-                mapped = array.map { val in
-                    var mutable = val
-                    self.set(input, to: &mutable)
-                    return mutable
-                }
-                parent = type(of: parent).init(mapped)
-            }
-        }
-    }
-
-
-    public func makeEmptyStructureForIndexing<T: PathIndexable>() -> T {
-        Log.debug("making empty structure: \(self)")
-        return T([:])
-    }
-
-    public func unwrapComponents() -> [PathIndexer] {
-        self.split(separator: ".")
-            .map(String.init)
-    }
-}
-
-extension String {
-    internal func keyPathComponents() -> [String] {
-        self.split(separator: ".")
-            .map(String.init)
-    }
-}
+// MARK: DotKeys
 
 /// Everything in indexable will explode keypaths,
 /// for example, "foo.bar" will become "foo", "bar"
