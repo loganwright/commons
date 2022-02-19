@@ -7,6 +7,10 @@ public protocol Middleware {
                 next: @escaping (Result<NetworkResponse, Error>) -> Void)
 }
 
+// MARK: BasicHandler
+
+/// This middleware is great for detached operations
+/// that don't modify the result to pass downstream
 public struct BasicHandler: Middleware {
     public let handler: (Result<NetworkResponse, Error>) throws -> Void
 
@@ -20,6 +24,7 @@ public struct BasicHandler: Middleware {
             try handler(result)
             next(result)
         } catch {
+            Log.error(error)
             next(.failure(error))
         }
     }
@@ -54,6 +59,7 @@ extension BasicHandler {
     public init<D: Decodable>(onSuccess: @escaping (D) -> Void) {
         self.init(basic: { result in
             guard let value = result.value else { return }
+            print("handling: \(D.self)")
             let decoded = try D.decode(value)
             onSuccess(decoded)
         })

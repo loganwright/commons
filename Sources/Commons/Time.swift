@@ -9,11 +9,11 @@ public struct Time: Codable, Equatable {
     public let hours: Int
     public let minutes: Int
 
-    public init(_ str: String) {
-        let comps = str.components(separatedBy: "::").compactMap(Int.init)
-        assert(comps.count == 2)
-        self.init(hours: comps[0], minutes: comps[1])
-    }
+//    public init(_ str: String) {
+//        let comps = str.components(separatedBy: "::").compactMap(Int.init)
+//        assert(comps.count == 2)
+//        self.init(hours: comps[0], minutes: comps[1])
+//    }
 
     public init(hours: Int, minutes: Int) {
         assert(0...23 ~= hours)
@@ -25,7 +25,7 @@ public struct Time: Codable, Equatable {
 
     public func display(in style: Style) -> String {
         var hrs = hours.description
-        if hours < 12 { hrs = "0" + hrs }
+        if hours < 10 { hrs = "0" + hrs }
         var mins = minutes.description
         if minutes < 10 { mins = "0" + mins}
         if style == .twentyFourHour { return "\(hrs):\(mins)" }

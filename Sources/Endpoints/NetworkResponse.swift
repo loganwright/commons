@@ -1,10 +1,49 @@
 import Foundation
 import Commons
 
-public typealias NetworkCompletion = (Result<NetworkResponse, Error>) -> Void
+public typealias NetworkResult = Result<NetworkResponse, Error>
+public typealias NetworkCompletion = (NetworkResult) -> Void
 
-public struct NetworkResponse {
-    public let http: HTTPURLResponse
+
+@propertyWrapper
+@dynamicMemberLookup
+public struct Archivable<T>: Codable where T: NSObject, T: NSCoding {
+    public var wrappedValue: T
+    
+    public init(wrappedValue: T) {
+        self.wrappedValue = wrappedValue
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let data = try Data(from: decoder)
+        guard let unarchived = try NSKeyedUnarchiver.unarchivedObject(ofClass: T.self, from: data) else {
+            throw "unable to unarchive data: \(data.string ?? data.count.description)"
+        }
+        self.wrappedValue = unarchived
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        let data = try NSKeyedArchiver.archivedData(withRootObject: wrappedValue, requiringSecureCoding: false)
+        try data.encode(to: encoder)
+    }
+    
+    public subscript<U>(dynamicMember kp: KeyPath<T, U>) -> U {
+        wrappedValue[keyPath: kp]
+    }
+    
+    public subscript<U>(dynamicMember kp: WritableKeyPath<T, U>) -> U {
+        get {
+            wrappedValue[keyPath: kp]
+        }
+        set {
+            wrappedValue[keyPath: kp] = newValue
+        }
+    }
+}
+
+public struct NetworkResponse: Codable {
+    @Archivable
+    public fileprivate(set) var http: HTTPURLResponse
     public fileprivate(set) var body: Data?
 
     public var anyobj: AnyObject? {
@@ -21,9 +60,8 @@ public struct NetworkResponse {
 
 extension NetworkResponse {
     public var json: JSON? {
-        body.flatMap(\.json)
+        try? body?.decode()
     }
-
     public mutating func replaceBody(with: JSON) {
         body = try? with.encoded()
     }
@@ -33,12 +71,73 @@ extension NetworkResponse: CustomStringConvertible {
     public var description: String {
         let msg = body.flatMap { String(bytes: $0, encoding: .utf8) } ?? "<no-body>"
         return """
-        NetWorkResponse:
+        NetworkResponse:
         \(http)
 
         Body:
         \(msg)
         """
+    }
+}
+
+
+public struct NNNNResponse {
+    public let http: HTTPURLResponse
+    public let result: Result<Data, Error>
+    
+    
+    public init(_ response: URLResponse?, body: Data?, error: Error?) throws {
+        guard let http = response as? HTTPURLResponse else { throw "unable to make http url response: \(response as Any?)" }
+        self.http = http
+        if http.isSuccessResponse {
+            let desc = error ?? body.flatMap(\.string) ?? "no error or response received"
+            let err = NSError(domain: NSURLErrorDomain,
+                              code: http.statusCode,
+                              userInfo: [NSLocalizedDescriptionKey: desc])
+            self.result = .failure(err)
+        } else {
+            self.result = .success(body ?? Data())
+            
+        }
+    }
+}
+
+/// should be nested in below extension
+/// but not supported generics outside of declaration
+private struct ResultMap: Codable {
+    var success: NetworkResponse? = nil
+    private var archivedFailure: Archivable<NSError>? = nil
+    
+    var failure: NSError? {
+        get {
+            archivedFailure?.wrappedValue
+        }
+        set {
+            archivedFailure = newValue.flatMap(Archivable.init)
+        }
+    }
+}
+
+extension Result: Codable where Success == NetworkResponse, Failure == Error {
+    public init(from decoder: Decoder) throws {
+        let map = try ResultMap(from: decoder)
+        if let value = map.success {
+            self = .success(value)
+        } else if let error = map.failure {
+            self = .failure(error)
+        } else {
+            throw "invalid empty map found"
+        }
+    }
+    public func encode(to encoder: Encoder) throws {
+        var map = ResultMap()
+        switch self {
+        case .success(let success):
+            map.success = success
+        case .failure(let failure):
+            map.failure = failure as NSError
+        }
+        try map.encode(to: encoder)
     }
 }
 
@@ -49,50 +148,34 @@ extension Result where Success == NetworkResponse, Failure == Error {
     }
 
     public init(_ response: HTTPURLResponse?, body: Data?, error: Error?) {
-        guard let http = response, http.isSuccessResponse else {
-            let desc = error ?? body.flatMap(\.string) ?? "no error or response received"
-            let err = NSError(domain: NSURLErrorDomain,
-                              code: response?.statusCode ?? -1,
-                              userInfo: [NSLocalizedDescriptionKey: desc])
+        if let http = response, http.isSuccessResponse {
+            self = .success(.init(http: http, body: body))
+        } else {
+            let desc = error?.display ?? body.flatMap(\.string) ?? "no error or response received"
+            let err = NSError(statusCode: response?.statusCode, desc)
             self = .failure(err)
-            return
         }
-
-        self = .success(.init(http: http, body: body))
     }
 }
 
-// todo: rm?
-//func makeQueryString(parameters: [String: Any]) -> String {
-//    var params: [(key: String, val: Any)] = []
-//    parameters.forEach { k, v in
-//        if let array = v as? [Any] {
-//            array.forEach { v in
-//                params.append((k, v))
-//            }
-//        } else {
-//            params.append((k, v))
+fileprivate extension NSError {
+    convenience init(statusCode: Int?, _ desc: String) {
+        self.init(domain: NSURLErrorDomain,
+                  code: statusCode ?? -1,
+                  userInfo: [NSLocalizedDescriptionKey: desc])
+    }
+}
+
+//extension Dictionary where Key == String, Value == String {
+//    fileprivate func combined(with rhs: Dictionary?, overwrite: Bool = true) -> Dictionary {
+//        var combo = self
+//        rhs?.forEach { k, v in
+//            guard overwrite || combo[k] == nil else { return }
+//            combo[k] = v
 //        }
+//        return combo
 //    }
-//    let query = params.map { param in param.key + "=\(param.val)" }
-//        .sorted(by: <)
-//        .joined(separator: "&")
-//    // todo: fallback to percent fail onto original query
-//    // verify ideal behavior
-//    return query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
-//        ?? query
 //}
-
-extension Dictionary where Key == String, Value == String {
-    fileprivate func combined(with rhs: Dictionary?, overwrite: Bool = true) -> Dictionary {
-        var combo = self
-        rhs?.forEach { k, v in
-            guard overwrite || combo[k] == nil else { return }
-            combo[k] = v
-        }
-        return combo
-    }
-}
 
 extension URLRequest {
     public mutating func setBody(json: Data) {
@@ -101,15 +184,6 @@ extension URLRequest {
     }
 }
 
-extension NSError {
-    public static var networkUnavailable: NSError {
-        NSError(
-            domain: NSURLErrorDomain,
-            code: NoNetworkErrorCode,
-            userInfo: nil
-        )
-    }
-}
 
 extension HTTPURLResponse {
     /// set by the registration and metadata server
@@ -122,23 +196,8 @@ extension HTTPURLResponse {
         return HTTPURLResponse.localizedString(forStatusCode: statusCode)
     }
 
-    fileprivate var isSuccessResponse: Bool {
+    public var isSuccessResponse: Bool {
         return (200...299).contains(statusCode) || statusCode == 0
-    }
-}
-
-extension String {
-    public var nserr: NSError {
-        return (self as Error) as NSError
-    }
-}
-
-extension Encodable {
-    public var anyobj: AnyObject? {
-        /// we could probably take some of this out, it was originally stitching for other systems to transition with
-        let data = try? self.encoded()
-        let json = data.flatMap { try? JSONSerialization.jsonObject(with: $0, options: []) }
-        return json as AnyObject?
     }
 }
 
@@ -174,4 +233,3 @@ extension Decodable {
         return try decode(body)
     }
 }
-

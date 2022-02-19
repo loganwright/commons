@@ -1,6 +1,43 @@
 import Foundation
 import Commons
 
+extension Files {
+    static let vcr = Files(folder: "vcr", encrypted: false)
+}
+
+final class VCR {
+    let name: String
+    let folder: Files
+    
+    private init(name: String) {
+        self.name = name
+        // TODO: Write to outer folder where files can be committed
+        self.folder = Files(folder: "vcr/\(name)", encrypted: false)
+    }
+    
+    func request(_ req: URLRequest, continuation: NetworkCompletion) {
+        
+    }
+}
+
+final class VVVVCR: RequestTask {
+    func callAsFunction(_ base: Base, _ continuation: @escaping NetworkCompletion) {
+        
+    }
+}
+
+extension VCR: Middleware {
+    func handle(_ result: Result<NetworkResponse, Error>, next: @escaping (Result<NetworkResponse, Error>) -> Void) {
+        
+        next(result)
+    }
+}
+//struct ASD: Middleware {
+//    func handle(_ result: Result<NetworkResponse, Error>, next: @escaping (Result<NetworkResponse, Error>) -> Void) {
+//        <#code#>
+//    }
+//}
+
 extension String {
     fileprivate var urlcomponents: URLComponents {
         URLComponents(string: self)!
@@ -21,8 +58,83 @@ extension URLComponents {
     }
 }
 
+extension URLSession {
+    func send(_ request: URLRequest, completion: @escaping (NetworkResult) -> Void) {
+        self.dataTask(with: request) { (data, response, error) in
+            main {
+                completion(.init(response as? HTTPURLResponse, body: data, error: error))
+            }
+        }
+        .resume()
+    }
+}
+
+public protocol RequestTask {
+    func callAsFunction(_ base: Base, _ continuation: @escaping NetworkCompletion)
+}
+//
+//typealias Dispatch = (Base, @escaping NetworkCompletion) -> Void
+//
+//struct Header {
+//    let key: String
+//    let val: String
+//}
+//
+//extension Array where Element == Header {
+//    subscript(key: String) -> String? {
+//        get {
+//            self.first(where:\.key, matches: key)?.val
+//        }
+//        set {
+//            if let idx = firstIndex(where: \.key, matches: key) {
+//                if let new = newValue {
+//                    self[idx] = Header(key: key, val: new)
+//                } else {
+//                    self.remove(at: idx)
+//                }
+//            } else if let new = newValue {
+//                self.append(Header(key: key, val: new))
+//            }
+//        }
+//    }
+//}
+//
+//@propertyWrapper
+//struct Headers {
+//    var wrappedValue: [String: String]
+//}
+
+struct Timeout {
+    init(file: String = #file, line: Int = #line, _ duration: TimeInterval, execute work: @escaping () -> Void) throws {
+        let id = file.sourceFileName + "[\(line)]"
+        try self.init(id: id, duration, execute: work)
+    }
+    
+    init(id: String, _ duration: TimeInterval, execute work: @escaping () -> Void) throws {
+        let group = DispatchGroup()
+        group.enter()
+        background {
+            work()
+            group.leave()
+        }
+        let result = group.wait(timeout: .now() + duration)
+        guard result == .timedOut else { return }
+        throw "timed out of operation: \(id)"
+    }
+}
+
 @dynamicMemberLookup
-public class Base {
+public class Base: Codable {
+    enum CodingKeys: String, CodingKey {
+        case baseUrl
+        case _method
+        case _path
+        case _headers
+        case _query
+        case _body
+        case _timeout
+    }
+    
     public private(set) var baseUrl: String
     public var _method: HTTPMethod = .get
     public var _path: String = ""
@@ -32,7 +144,7 @@ public class Base {
 
     // additional attributes
     private var _timeout: TimeInterval = 30.0
-    private lazy var session: URLSession = URLSession(configuration: .default)
+    fileprivate lazy var session: URLSession = URLSession(configuration: .default)
 
     public init(_ url: String) {
         let comps = url.urlcomponents
@@ -115,6 +227,7 @@ public class Base {
 
     private var middlewares: [Middleware] = []
 
+    // TODO: sort by priority Int?
     public enum MiddlewareInsert {
         case front
         case back
@@ -137,6 +250,7 @@ public class Base {
 
     // MARK: Send
 
+    // TODO: use a beforeRun or middleware or sth
     public var _logging = false
 
     public func send() {
@@ -149,23 +263,28 @@ public class Base {
         } as NetworkCompletion
 
         guard Network.isAvailable else {
-            queue(.failure(NSError.networkUnavailable))
+            queue(.failure(NSError.noNetwork))
             return
         }
 
-        do {
-            let request = try makeRequest()
-            session.dataTask(with: request) { (data, response, error) in
-                DispatchQueue.main.async {
-                    queue(.init(response as? HTTPURLResponse, body: data, error: error))
-                }
-            }.resume()
-        } catch {
-            queue(.failure(error))
+        
+        requestTask(self, queue)
+    }
+    
+    public var requestTask: RequestTask = URLSessionRequestTask()
+    
+    public struct URLSessionRequestTask: RequestTask {
+        public func callAsFunction(_ base: Base, _ continuation: @escaping NetworkCompletion) {
+            do {
+                let request = try base.makeRequest()
+                base.session.send(request, completion: continuation)
+            } catch {
+                continuation(.failure(error))
+            }
         }
     }
 
-    private func makeRequest() throws -> URLRequest {
+    public func makeRequest() throws -> URLRequest {
         guard let url = URL(string: expandedUrl) else {
             throw "can't make url from: \(expandedUrl)"
         }
@@ -175,7 +294,7 @@ public class Base {
         request.allHTTPHeaderFields = _headers
         request.httpMethod = _method.rawValue
         if _method == .get, _body != nil {
-            Log.warn("body ignored on GET request")
+            Log.warn("body sometimes ignored on GET request")
         }
         
         if _method != .get, let body = _body {
@@ -293,9 +412,9 @@ public class ObjBuilder {
         if args.isEmpty {
             body = JSON.emptyObj
         } else if args.count == 1 {
-            body = args[0].json!
+            body = try! args[0].convert()
         } else {
-            body = args.json!
+            body = try! args.convert()
         }
         base[keyPath: kp] = body
         return base
@@ -502,3 +621,32 @@ public final class HeadersBuilder {
         return .init(base, key: headerKey)
     }
 }
+
+extension Base {
+    public var logErrors: Base {
+        on.error { error in
+            Log.error(error)
+        }
+    }
+}
+
+
+#if canImport(XCTest)
+import XCTest
+
+extension TypedBuilder {
+    public func testing(on expectation: XCTestExpectation) -> Self {
+        self.base.testing(on: expectation).typed()
+    }
+}
+
+extension Base {
+    public func testing(on expectation: XCTestExpectation) -> Base {
+        self.on.either(expectation.fulfill)
+            .on.error { err in
+                XCTFail("\(err)")
+            }
+    }
+}
+
+#endif

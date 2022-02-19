@@ -15,13 +15,13 @@ extension Array {
 
 
 
-extension Array where Element: EncapsulationProtocol {
+extension Sequence where Element: EncapsulationProtocol {
     public func flatten() -> [Element.Wrapped] {
         compactMap { $0.wrapped }
     }
 }
 
-extension Array {
+extension Sequence {
     public func flatten<T>(as t: T.Type) -> [T] {
         compactMap { $0 as? T }
     }
@@ -34,6 +34,58 @@ extension Sequence {
 extension Sequence where Element: Hashable {
     public var set: Set<Element> { Set(self)}
 }
+
+// MARK: Flushing
+
+extension Array {
+    public mutating func flush<T>(whereNil kp: KeyPath<Element, T?>) {
+        self = self.filter { $0[keyPath: kp] != nil }
+    }
+
+    public mutating func flush(where shouldFlush: (Element) -> Bool) {
+        self = self.filter { !shouldFlush($0) }
+    }
+}
+
+extension Array {
+    public mutating func flush<T: Equatable>(where kp: KeyPath<Element, T?>, matches: T?) {
+        self = self.filter { $0[keyPath: kp] == matches }
+    }
+
+    public mutating func flush<T: AnyObject>(where kp: KeyPath<Element, T?>, matches: T?) {
+        self = self.filter { $0[keyPath: kp] === matches }
+    }
+}
+
+// MARK: KeyPath
+
+extension RangeReplaceableCollection {
+    // first
+    @inlinable public func first<T: Equatable>(where kp: KeyPath<Element, T>, matches: T) -> Element? {
+        first(where: { $0[keyPath: kp] == matches })
+    }
+    @inlinable public func firstIndex<T: Equatable>(where kp: KeyPath<Element, T>, matches: T) -> Index? {
+        firstIndex(where: { $0[keyPath: kp] == matches })
+    }
+    
+    // filter
+    @inlinable public func filter<T: Equatable>(where kp: KeyPath<Element, T>, matches: T) -> Self {
+        filter({ $0[keyPath: kp] == matches })
+    }
+}
+
+@available(iOS 13, *)
+extension Array where Element: Identifiable {
+    @inlinable public func first(matchingId id: Element.ID) -> Element? {
+        first(where: \.id, matches: id)
+    }
+    @inlinable public func firstIndex(matchingId id: Element.ID) -> Int? {
+        firstIndex(where: \.id, matches: id)
+    }
+}
+
+
+// MARK: ...
 
 extension Array {
     public mutating func set<T>(each kp: WritableKeyPath<Element, T>, to new: T) {
@@ -56,25 +108,5 @@ extension Array {
             let function = element[keyPath: kp]
             function(arg)
         }
-    }
-}
-
-extension Array {
-    public mutating func flush<T>(whereNil kp: KeyPath<Element, T?>) {
-        self = self.filter { $0[keyPath: kp] != nil }
-    }
-
-    public mutating func flush(where shouldFlush: (Element) -> Bool) {
-        self = self.filter { !shouldFlush($0) }
-    }
-}
-
-extension Array {
-    public mutating func flush<T: Equatable>(where kp: KeyPath<Element, T?>, matches: T?) {
-        self = self.filter { $0[keyPath: kp] == matches }
-    }
-
-    public mutating func flush<T: AnyObject>(where kp: KeyPath<Element, T?>, matches: T?) {
-        self = self.filter { $0[keyPath: kp] === matches }
     }
 }

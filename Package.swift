@@ -7,7 +7,7 @@ let package = Package(
     name: "Commons",
     platforms: [
         .macOS(.v10_15),
-        .iOS(.v9)
+        .iOS(.v11)
     ],
     products: [
         /// rename this to base

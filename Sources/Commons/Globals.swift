@@ -17,3 +17,9 @@ public let IS_PRODUCTION: Bool = {
     return true
     #endif
 }()
+
+public let NoNetworkErrorCode = NSURLErrorNotConnectedToInternet
+
+public prefix func ! <T>(original: @escaping (T) -> Bool) -> (T) -> Bool {
+    return { input in !original(input) }
+}

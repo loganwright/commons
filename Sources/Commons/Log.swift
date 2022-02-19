@@ -1,107 +1,250 @@
-public struct Log {
-    /// use this to pipe log messages out
-    public enum Severity {
-        case info, warn, error
-    }
-    public static var outPipe: (Severity, String) -> Void = { _, _ in }
-
-    public static func info(file: String = #file, line: Int = #line, _ msg: Any) {
-        let file = file.components(separatedBy: "/").last ?? "<>"
-        let msg = "\(file):\(line) - \(msg)"
-        print(msg)
-        outPipe(.info, msg)
-    }
-
-    public static func warn(file: String = #file, line: Int = #line, _ msg: String) {
-        let file = file.components(separatedBy: "/").last ?? "<>"
-        let msg = "\(file):\(line) - \(msg)"
-        print("*** WARNING ***")
-        print(msg)
-        outPipe(.warn, msg)
-    }
-
-    public static func error(file: String = #file, line: Int = #line, _ err: Error) {
-        let file = file.components(separatedBy: "/").last ?? "<>"
-        let msg = "\(file):\(line) - \(err.display)"
-        print("!!*** ERROR ***!!")
-        print("*****************")
-        print(msg)
-        outPipe(.error, msg)
-    }
-
-    // MARK: Logs
-
-
-    public static var unsafe_collectDebugLogs = false
-    public static var unsafe_debugLogMaxEntries = 500
-
-    private static var _unsafe_testable_logs: [String] = []
-
-    private static func add(log: String) {
-        defer { _unsafe_testable_logs.append(log) }
-        guard _unsafe_testable_logs.count >= unsafe_debugLogMaxEntries else { return }
-        do {
-            /// overwrite last entries
-            try Files.debugLogs.write(filename: ".logs", _unsafe_testable_logs)
-            _unsafe_testable_logs = []
-        } catch {
-            Log.warn("unable to write logs")
-            _unsafe_testable_logs.removeFirst()
-        }
-    }
-
-    public static func fetchLogs() -> [String] {
-        do {
-            let logs = try Files.debugLogs.read(filename: ".logs", as: [String].self) ?? []
-            return logs + _unsafe_testable_logs
-        } catch {
-            Log.warn("unable to read logs")
-            return _unsafe_testable_logs
-        }
-    }
-
-    private static func print(_ str: String) {
-        #if DEBUG
-        Swift.print(str)
-        #endif
-
-        if unsafe_collectDebugLogs { add(log: str) }
-    }
-}
-
-extension Files {
-    public static let debugLogs = Files(folder: "logs", encrypted: true)
-}
-
-
 import Foundation
 
-extension Error {
-    public var display: String {
-        let ns = self as NSError
-        let _localized = ns.userInfo[NSLocalizedDescriptionKey]
-        if let nested = _localized as? NSError {
-            return nested.display
-        } else if let string = _localized as? String {
-            let raw = Data(string.utf8)
-            if let json = try? JSON.decode(raw) {
-                return json.nonFieldErrors?.string
-                    ?? json.message?.string
-                    ?? json.detail?.string
-                    ?? "\(json)"
-            } else {
-                return ns.domain + ":\n" + "\(ns.code) - " + string
-            }
-        } else {
-            return "\(self)"
+// MARK: Log
+
+/// entry point for logging, use via the cases
+///
+///     Log.trace("contentView::didAppear")
+///     Log.error("big error oh no")
+///
+public enum Log: Int, CaseIterable, Codable, Equatable, Hashable {
+    
+    /// outputs to push logs through
+    public static var outputs: [LogOutput] = .defaults
+    
+    /// available log levels
+    ///
+    /// mirror swift logs for future integration
+    case trace,
+         debug,
+         info,
+         notice,
+         warn,
+         error,
+         critical
+
+    /// a visual symbol to easily identify
+    public var symbol: Character {
+        switch self {
+        case .trace:
+            return "-"
+        case .debug:
+            return "◦"
+        case .info:
+            return "•"
+        case .notice:
+            return "*"
+        case .warn:
+            return "!"
+        case .error:
+            return "∆"
+        case .critical:
+            return "※"
+        }
+    }
+    
+    /// make log
+    public func callAsFunction(fileID: String = #fileID, line: Int = #line, function: String = #function, _ msg: String) {
+        let crumb = BreadCrumb(fileID: fileID, line: line, function: function, level: self)
+        output(crumb, msg: msg)
+    }
+    
+    /// make log
+    public func callAsFunction<T>(fileID: String = #fileID, line: Int = #line, function: String = #function, _ msg: T?) {
+        let crumb = BreadCrumb(fileID: fileID, line: line, function: function, level: self)
+        let msg = msg.flatMap({ "\($0)" }) ?? "<nil>"
+        output(crumb, msg: msg)
+    }
+    
+    private func output(_ crumb: BreadCrumb, msg: String) {
+        let entry = Entry(crumb: crumb, msg: msg)
+        Log.outputs.log(entry)
+    }
+}
+
+// MARK: Log+Extras
+
+extension Array where Element == Log {
+    public static var allCases: [Log] {
+        Log.allCases
+    }
+    public static func greaterThan(_ base: Log) -> [Log] {
+        allCases.filter { $0 > base }
+    }
+    public static func greaterOrEqualTo(_ base: Log) -> [Log] {
+        allCases.filter { $0 >= base }
+    }
+    public static func lessThan(_ base: Log) -> [Log] {
+        allCases.filter { $0 < base }
+    }
+    public static func lessOrEqualTo(_ base: Log) -> [Log] {
+        allCases.filter { $0 <= base }
+    }
+}
+
+extension Log: Comparable {}
+public func < (lhs: Log, rhs: Log) -> Bool {
+    lhs.rawValue < rhs.rawValue
+}
+
+// MARK: Output
+
+public protocol LogOutput {
+    func log(_ entry: Entry)
+}
+
+@dynamicMemberLookup
+public struct Entry: Codable {
+    let crumb: BreadCrumb
+    let msg: String
+    
+    subscript<T>(dynamicMember kp: KeyPath<BreadCrumb, T>) -> T {
+        crumb[keyPath: kp]
+    }
+}
+
+extension Array where Element == LogOutput {
+    public static var `defaults`: [LogOutput] {
+        #if DEBUG
+        return [
+            MemoryLogs(.allCases),
+            StandardLog(.allCases),
+        ]
+        #else
+        return [
+            // RemoteLogs(.greaterOrEqualTo(.notice))
+        ]
+        #endif
+    }
+}
+
+public struct StandardLog: LogOutput {
+    public let levels: [Log]
+    
+    public init(_ levels: [Log]) {
+        self.levels = levels
+    }
+    
+    public func log(_ entry: Entry) {
+        guard levels.contains(entry.level) else { return }
+        Swift.print(entry.msg)
+    }
+}
+
+public class MemoryLogs: LogOutput {
+    public let levels: [Log]
+    public var max: Int
+    
+    // TODO: Organize by level
+    public var logs: [Entry] = [] {
+        didSet {
+            let overflow = logs.count - max
+            guard overflow > 0 else { return }
+            logs.removeFirst(overflow)
+        }
+    }
+    
+    public init(_ levels: [Log], max: Int = 1024) {
+        self.levels = levels
+        self.max = max
+    }
+    
+    public func log(_ entry: Entry) {
+        guard levels.contains(entry.level) else { return }
+        logs.append(entry)
+    }
+}
+
+extension Array where Element == Entry {
+    public subscript(level: Log) -> [Entry] {
+        filter { $0.level == level }
+    }
+}
+
+extension Array: LogOutput where Element == LogOutput {
+    public var memory: MemoryLogs? {
+        self.lazy.compactMap { $0 as? MemoryLogs } .first
+    }
+    
+    public func log(_ entry: Entry) {
+        forEach { output in
+            output.log(entry)
         }
     }
 }
 
+// MARK: Meta
 
-public func warnIfNil<T>(file: String = #file, line: Int = #line, _ thing: T?, _ msg: String) {
-    if let _ = thing { return }
-    else {
-        Log.warn(file: file, line: line, "unexpectedly found nil: \(msg)")
+/// small objects that contain metadata
+/// about where a given log came from
+public struct BreadCrumb: Codable, Equatable {
+    /// currently only this system supported
+    private var compact: String {
+        var formatted = "[\(level.symbol.description)]"
+        formatted += " "
+        formatted += created.timeStamp
+        formatted += " "
+        formatted += fileID.sourceFileName
+        formatted += "."
+        formatted += function.functionName
+        formatted += "[\(line)]"
+        formatted += " - "
+        return formatted
+    }
+    
+    public var tag: String { compact }
+    
+    public let fileID: String
+    public let line: Int
+    public let function: String
+    public let level: Log
+    public let created: Date
+    
+    public init(fileID: String = #fileID, line: Int = #line, function: String = #function, level: Log) {
+        self.fileID = fileID
+        self.line = line
+        self.function = function
+        self.level = level
+        self.created = .init()
+    }
+}
+
+// MARK: Formatting
+
+extension Date {
+    fileprivate var timeStamp: String {
+        let comps = Calendar.current.dateComponents([.hour, .minute, .second], from: self)
+        let h = comps.hour!.display(spaces: 2)
+        let m = comps.minute!.display(spaces: 2)
+        let s = comps.second!.display(spaces: 2)
+        return h + ":" + m + ":" + s
+    }
+}
+
+extension Int {
+    fileprivate func display(spaces: Int) -> String {
+        guard spaces > 1 else { return description }
+        let str = self.description
+        guard str.count < spaces else { return str }
+        let padding = String(repeating: "0", count: (str.count - spaces))
+        if self > 0 {
+            return padding + str
+        } else {
+            return "-" + abs(self).display(spaces: spaces)
+        }
+    }
+}
+
+// MARK: Precondition Formatting
+
+extension String {
+    /// for use with #filePath or #fileID
+    public var sourceFileName: String {
+        components(separatedBy: "/").last?.components(separatedBy: ".").first ?? "<>"
+    }
+    
+    /// for use with #function
+    public var functionName: String {
+        components(separatedBy: "(").first ?? "<>"
     }
 }

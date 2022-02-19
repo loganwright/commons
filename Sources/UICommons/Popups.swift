@@ -26,10 +26,11 @@ open class ErrorPopup: MessagePopup {
         fatalError("init(coder:) has not been implemented")
     }
 
-    public static func launch(file: String = #file,
+    public static func launch(file: String = #fileID,
                               line: Int = #line,
+                              function: String = #function,
                               with error: Error) {
-        Log.error(file: file, line: line, error)
+        Log.error(fileID: file, line: line, function: function, error)
         let popup = Self.init(error.display)
         let show = popup.show(file: file, line: line)
         let hide = popup.hide(file: file, line: line)

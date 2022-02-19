@@ -8,3 +8,7 @@ public protocol EncapsulationProtocol {
 extension Optional: EncapsulationProtocol {
     public var wrapped: Wrapped? { self }
 }
+
+//extension Optional: Codable where Wrapped: Codable {
+////    init(from:)
+//}

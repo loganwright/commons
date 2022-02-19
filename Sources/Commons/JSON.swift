@@ -1,16 +1,19 @@
 import Foundation
 
-extension String {
-    public var data: Data { Data(utf8) }
-}
-extension Data {
-    public var string: String? { String(data: self, encoding: .utf8) }
-}
-
 extension JSON {
     public static let emptyObj: JSON = .obj([:])
 }
 
+/// a very basic JSON object that can help
+/// with the fuzzier side of data when working
+/// with swift
+///
+/// it's really useful as an object for mocking
+/// and iterating, or for the background as
+/// abstract structured data
+///
+/// properties are NOT typesafe, be careful..
+///     json.some.key.can.go.here
 @dynamicMemberLookup
 public enum JSON: Codable, Equatable {
     case int(Int)
@@ -62,7 +65,46 @@ public enum JSON: Codable, Equatable {
     }
 }
 
+//@dynamicMemberLookup
+//extension Optional where Wrapped == JSON {
+//    public subscript(dynamicMember key: String) -> JSON? {
+//        get {
+//            return self.wrapped?[key]
+//        }
+//        set {
+//            let js = JSON.emptyObj
+//            fatalError()
+//        }
+//    }
+//}
+
+@dynamicMemberLookup
+final class AccessPath {
+    let json: JSON
+    init(_ json: JSON = .emptyObj) {
+        self.json = json
+    }
+
+    subscript<T>(dynamicMember kp: KeyPath<JSON, T>) -> T {
+        json[keyPath: kp]
+        fatalError()
+    }
+}
+
 extension JSON {
+    
+//    subscript(dynamicMember key: String) -> Int {
+//        get {
+//            889898
+//        }
+////        get {
+////            return self[key]
+////        }
+////        set {
+////            self[key] = newValue
+////        }
+//    }
+    
     public subscript(dynamicMember key: String) -> JSON? {
         get {
             return self[key]
@@ -75,14 +117,14 @@ extension JSON {
     public subscript<C: Codable>(dynamicMember key: String) -> C? {
         get {
             do {
-                return try self[key].flatMap(C.init)
+                return try self[key]?.convert()
             } catch {
                 Log.error(error)
                 return nil
             }
         }
         set {
-            self[key] = newValue?.json
+            self[key] = try? newValue?.convert()
         }
     }
 
@@ -105,7 +147,7 @@ extension JSON {
     public subscript(idx: Int) -> JSON? {
         return array?[idx] ?? obj?["\(idx)"]
     }
-
+    
     /// not very advanced, but supports really bassic `.` path access
     public subscript(path: [String]) -> JSON? {
         var obj: JSON? = self
@@ -125,26 +167,11 @@ extension JSON {
     }
 }
 
-
-// MARK: Codable Interops
-
-extension Decodable {
-    public init(json: JSON) throws {
-        let raw = try json.encoded()
-        self = try .decode(raw)
-    }
-}
-
-extension Encodable {
-    public var json: JSON? {
-        do {
-            return try toJson()
-        } catch {
-            Log.error(error)
-            return nil
-        }
-    }
-    public func toJson() throws -> JSON {
+extension Encodable  {
+    /// this is intended to override the
+    /// other convert methods
+    /// to facilitate
+    public func convert() throws -> JSON {
         switch self {
         case let s as String:
             return .str(s)
@@ -154,24 +181,23 @@ extension Encodable {
             return .int(i)
         case let b as Bool:
             return .bool(b)
+        case let j as JSON:
+            return j
+        case let d as Data:
+            do {
+                return try d.decode()
+            } catch {
+                Log.warn("unable to decode JSON from data, attempting decode as String")
+                if let str = d.string {
+                    return .str(str)
+                } else {
+                    Log.error("unable to convert Data to JSON, setting empty string")
+                    return .str("")
+                }
+            }
         default:
-            return try self.encoded().toJson()
+            return try self.convert()
         }
-    }
-}
-
-extension Data {
-    public var json: JSON? {
-        do {
-            return try toJson()
-        } catch {
-            Log.error(error)
-            return nil
-        }
-    }
-
-    public func toJson() throws -> JSON {
-        try JSON.decode(self)
     }
 }
 
@@ -235,36 +261,71 @@ extension JSON {
     }
 
     public var obj: [String: JSON]? {
-        guard case .obj(let v) = self else { return nil }
-        return v
+        switch self {
+        case .obj(let v):
+            return v
+        case .str(let str):
+            do {
+                return try str.data.decode()
+            } catch {
+                Log.error(error)
+                return nil
+            }
+        default:
+            return nil
+        }
     }
     
     public var array: [JSON]? {
-        guard case .array(let v) = self else { return nil }
-        return v
-    }
-
-    public var any: AnyObject? {
         switch self {
-        case .int(let val):
-            return val as AnyObject
-        case .double(let val):
-            return val as AnyObject
-        case .str(let val):
-            return val as AnyObject
-        case .bool(let val):
-            return val as AnyObject
-        case .obj(let val):
-            var any: [String: Any] = [:]
-            val.forEach { k, v in
-                any[k] = v.any
+        case .array(let v):
+            return v
+        case .str(let str):
+            do {
+                return try str.data.decode()
+            } catch {
+                Log.error(error)
+                return nil
             }
-            return any as AnyObject
-        case .array(let val):
-            return val.map { $0.any ?? NSNull() } as AnyObject
+        default:
+            return nil
+        }
+    }
+}
+
+extension JSON {
+    /// if the JSON is an object, or an array
+    /// it will encode appropriate JSON
+    ///
+    /// all other types will be the underlying type,
+    /// encoded
+    ///
+    /// in this way, if a key is for example, a JSON.str
+    /// but a valid json object, it will be extracted
+    public var rawData: Data? {
+        switch self {
+        case .str(let val):
+            return Data(val.utf8)
+        case .array(let arr):
+            return try? arr.encoded()
+        case .obj(let obj):
+            return try? obj.encoded()
+        case .int(let val):
+            return Data(converting: val)
+        case .double(let val):
+            return Data(converting: val)
+        case .bool(let val):
+            return Data(converting: val)
         case .null:
             return nil
         }
+    }
+}
+
+extension Data {
+    fileprivate init<T>(converting value: T) {
+        var value = value
+        self = Data(bytes: &value, count: MemoryLayout<T>.size)
     }
 }
 

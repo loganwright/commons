@@ -14,59 +14,50 @@ class EndpointsTests: XCTestCase {
 
     func testOrdered() throws {
         let orderedTestCases = [
-            testGet,
-            testPost,
-            statusCode,
-            testBasicAuth,
-            testSerialize
+//            ("testGet", testGet),
+//            ("testPost", testPost),
+//            ("testError", testError),
+//            ("testBasicAuth", testBasicAuth),
+            ("testSerialize", testSerialize),
         ]
 
         orderedTestCases.forEach(execute)
     }
 
-    private func execute(_ op: (XCTestExpectation) -> Void) {
-        let expectation = XCTestExpectation(description: "user operation")
-        op(expectation)
-        wait(for: [expectation], timeout: 20.0)
-    }
-
     func testGet(_ group: XCTestExpectation) {
-        log()
-        // we get from the get endoint, yes
-        Base.httpbin.get("get")
+        Base.httpbin
+            .get("get")
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .query(name: "flia", age: 234)
-            .on.success { result in
-                let json = result.json
-                XCTAssertEqual(json?.args?.name?.string, "flia")
-                XCTAssertEqual(json?.args?.age?.int, 234)
+            .typed(as: JSON.self)
+            .on.success { json in
+                XCTAssertEqual(json.args?.name?.string, "flia")
+                XCTAssertEqual(json.args?.age?.int, 234)
             }
-            .on.success(group.fulfill)
-            .on.error(fail)
+            .testing(on: group)
             .send()
     }
 
     func testPost(_ group: XCTestExpectation) {
-        log()
-        // we get from the get endoint, yes
         Base.httpbin.post("post")
             .contentType("application/json")
             .accept("application/json")
             .body(name: "flia", age: 234)
-            .on.success { result in
+            .typed(as: JSON.self)
+            .on.success { results in
                 /// the json is also nested under json lol, the httpbin api makes funny calls
-                let json = result.json?["json"]
+                let json = results["json"]
                 XCTAssertEqual(json?.name?.string, "flia")
                 XCTAssertEqual(json?.age?.int, 234)
             }
-            .on.success(group.fulfill)
-            .on.error(fail)
+            .testing(on: group)
             .send()
     }
 
-    func statusCode(_ group: XCTestExpectation) {
-        Base.httpbin.get("status/{code}", code: 345)
+    func testError(_ group: XCTestExpectation) {
+        Base.httpbin
+            .get("status/{code}", code: 345)
             .header.contentType("application/json")
             .header.accept("application/json")
             .on.success { result in
@@ -75,58 +66,62 @@ class EndpointsTests: XCTestCase {
             .on.error { error in
                 let ns = error as NSError
                 XCTAssertEqual(ns.code, 345)
-                group.fulfill()
             }
+            /// dont use `.testing(on:` will create errors
+            .on.either(group.fulfill)
             .send()
     }
 
     func testBasicAuth(_ group: XCTestExpectation) {
-        Log.warn("don't in practice use password in a url")
+        let user = "lorbo"
+        let pass = "asdfjljv922"
         Base.httpbin
-            .get("basic-auth/{user}/{pass}", user: "lorbo", pass: "1038s002")
+            .get("basic-auth/{user}/{pass}", user: user, pass: pass)
             .accept("application/json")
-            .on.result { _ in group.fulfill() }
+            .basicAuth(user: user, password: pass)
+            .typed(as: JSON.self)
+            .on.success { user in
+                XCTAssertEqual(user.authenticated?.bool, true)
+            }
+            .testing(on: group)
             .send()
     }
 
+    struct BasicUser: Codable {
+        let id: String
+        let name: String
+        let age: Int
+    }
     func testSerialize(_ group: XCTestExpectation) {
-        group.fulfill()
-//        let sql = SQLManager.shared
-//        let db = sql.testable_db
-//        sql.open {
-//            try sql.unsafe_fatal_dropAllTables()
-//        } .commitSynchronously()
-//        try! db.prepare {
-//            BasicUser.self
-//        }
-//        Log.warn("don't in practice use password in a url")
-//        Base("https://httpbin.org")
-//            .post(path: "post")
-//            .contentType("application/json")
-//            .accept("application/json")
-//            .header("Custom", "more")
-//            .body(id: "asfdlkjdsf", name: "flia", age: 234)
-//            .on.success { resp in
-//                /// json is nested key in http bin :/
-//                let json = resp.json?["json"]?.obj ?? [:]
-//                let user = Ref<BasicUser>(json, db)
-//                try! user.save()
-//                XCTAssertEqual(user.id, "asfdlkjdsf")
-//                XCTAssertEqual(user.name, "flia")
-//                XCTAssertEqual(user.age, 234)
-//                group.fulfill()
-//            }
-//            .on.error(fail)
-//            .send()
+        
+        Base("https://httpbin.org")
+            .post(path: "post")
+            .contentType("application/json")
+            .accept("application/json")
+            .header("Custom", "more")
+            .body(id: "asfdlkjdsf", name: "flia", age: 234)
+            .middleware(ModifyBody(extracting: \.json), to: .front)
+            .typed(as: BasicUser.self)
+            .on.error { error in
+                Log.error(error)
+            }
+            .on.success { user in
+                XCTAssertEqual(user.id, "asfdlkjdsf")
+                XCTAssertEqual(user.name, "flia")
+                XCTAssertEqual(user.age, 234)
+            }
+            .testing(on: group)
+            .send()
     }
+}
 
+// In basic HTTP authentication, a request contains a header field in the form of Authorization: Basic <credentials>, where credentials is the Base64 encoding of ID and password joined by a single colon :.
 
-    func fail(_ error: Error) {
-        XCTFail("error: \(error)")
-    }
-
-    func log(_ desc: String = #function) {
-        Log.info("testing: \(desc)")
+extension Base {
+    func basicAuth(user: String, password: String) -> Base {
+        let joined = user + ":" + password
+        let encoded = Data(joined.utf8).base64EncodedString()
+        return self.authorization("Basic \(encoded)")
     }
 }
 
