@@ -78,16 +78,156 @@ public enum JSON: Codable, Equatable {
 //    }
 //}
 
-@dynamicMemberLookup
-final class AccessPath {
-    let json: JSON
-    init(_ json: JSON = .emptyObj) {
-        self.json = json
-    }
+protocol Segment {
+    var segment: String { get }
+}
 
-    subscript<T>(dynamicMember kp: KeyPath<JSON, T>) -> T {
-        json[keyPath: kp]
-        fatalError()
+
+@dynamicMemberLookup
+public struct Chain {
+    public private(set) var json: JSON
+    
+    public let segment: String
+    @Box
+    private var links: [String] = []
+//    public private(set) var links: [Link] = []
+    
+//    public struct Link {
+//        public let chain: Chain
+//        public let segment: String
+//    }
+    
+    fileprivate init(_ json: JSON, segment: String) {
+        self.json = json
+        self.segment = segment
+    }
+    
+//    private init(_ json: JSON, segment: String, parent: LinkedPath?) {
+//        self.json = json
+//        self.segment = segment
+//        self.parent = parent
+//    }
+    
+    public subscript(dynamicMember key: String) -> Chain {
+        get {
+            links.append(key)
+            return self
+        } set {
+            self = newValue
+        }
+    }
+    
+    public subscript(dynamicMember key: String) -> JSON? {
+        get {
+            json[path + [key]]
+        }
+        set {
+//            fatalError()
+            json[path + [key]] = newValue
+        }
+    }
+    
+    /// recursive, don't go crazy on nested
+    /// properties lol
+    private var path: [String] {
+        [segment] + links
+    }
+}
+
+//@dynamicMemberLookup
+//public final class OldLinkedPath {
+//    public var json: JSON
+//    public let segment: String
+//    public let parent: LinkedPath?
+//
+//    fileprivate convenience init(_ json: JSON, segment: String) {
+//        self.init(json, segment: segment, parent: nil)
+//    }
+//
+//    private init(_ json: JSON, segment: String, parent: LinkedPath?) {
+//        self.json = json
+//        self.segment = segment
+//        self.parent = parent
+//    }
+//
+//    public subscript(dynamicMember key: String) -> LinkedPath {
+//        get {
+//            LinkedPath(json, segment: key, parent: self)
+//        }
+//        set {
+//            fatalError()
+//        }
+//    }
+//
+//    public subscript(dynamicMember key: String) -> JSON? {
+//        get {
+//            json[path + [key]]
+//        }
+//        set {
+//            json[path + [key]] = newValue
+//        }
+//    }
+//
+//    /// recursive, don't go crazy on nested
+//    /// properties lol
+//    private var path: [String] {
+//        guard let parent = parent else {
+//            return [self.segment]
+//        }
+//
+//        return parent.path + [self.segment]
+//    }
+//}
+
+@dynamicMemberLookup
+public struct LinkedPath {
+    public var json: JSON
+    public let root: Link
+    
+    public struct Link {
+        public let segment: String
+        public init(_ segment: String) {
+            self.segment = segment
+        }
+    }
+    
+    @Box
+    public var children: [Link] = []
+
+    fileprivate init(_ json: JSON, segment: String) {
+        self.json = json
+        self.root = Link(segment)
+    }
+    
+//    private init(_ json: JSON, segment: String, parent: LinkedPath?) {
+//        self.json = json
+//        self.segment = segment
+//        self.parent = parent
+//    }
+    
+    public subscript(dynamicMember key: String) -> LinkedPath {
+        get {
+            children.append(Link(key))
+            return self
+        }
+        set {
+            self = newValue
+        }
+    }
+    
+    public subscript(dynamicMember key: String) -> JSON? {
+        get {
+            json[path + [key]]
+        }
+        set {
+            json[path + [key]] = newValue
+        }
+    }
+    
+    /// recursive, don't go crazy on nested
+    /// properties lol
+    private var path: [String] {
+        [root.segment] + children.map(\.segment)
     }
 }
 
@@ -105,6 +245,27 @@ extension JSON {
 ////        }
 //    }
     
+    
+//    public subscript(dynamicMember key: String) -> Chain {
+//        get {
+//            Chain(self, segment: key)
+//        }
+//        set {
+//            self = newValue.json
+//        }
+//    }
+    
+    
+
+    public subscript(dynamicMember key: String) -> LinkedPath {
+        get {
+            LinkedPath(self, segment: key)
+        }
+        set {
+            self = newValue.json
+        }
+    }
+    
     public subscript(dynamicMember key: String) -> JSON? {
         get {
             return self[key]
@@ -113,58 +274,58 @@ extension JSON {
             self[key] = newValue
         }
     }
+//
+//    public subscript<C: Codable>(dynamicMember key: String) -> C? {
+//        get {
+//            do {
+//                return try self[key]?.convert()
+//            } catch {
+//                Log.error(error)
+//                return nil
+//            }
+//        }
+//        set {
+//            self[key] = try? newValue?.convert()
+//        }
+//    }
 
-    public subscript<C: Codable>(dynamicMember key: String) -> C? {
-        get {
-            do {
-                return try self[key]?.convert()
-            } catch {
-                Log.error(error)
-                return nil
-            }
-        }
-        set {
-            self[key] = try? newValue?.convert()
-        }
-    }
+//    public subscript(key: String) -> JSON? {
+//        get {
+//            switch key {
+//            case "first": return array?.first ?? obj?[key]
+//            case "last": return array?.last ?? obj?[key]
+//            default:
+//                return obj?[key] ?? Int(key).flatMap { self[$0] }
+//            }
+//        }
+//        set {
+//            guard var obj = self.obj else { fatalError("can't set non object type json: \(self)") }
+//            obj[key] = newValue
+//            self = .obj(obj)
+//        }
+//    }
 
-    public subscript(key: String) -> JSON? {
-        get {
-            switch key {
-            case "first": return array?.first ?? obj?[key]
-            case "last": return array?.last ?? obj?[key]
-            default:
-                return obj?[key] ?? Int(key).flatMap { self[$0] }
-            }
-        }
-        set {
-            guard var obj = self.obj else { fatalError("can't set non object type json: \(self)") }
-            obj[key] = newValue
-            self = .obj(obj)
-        }
-    }
-
-    public subscript(idx: Int) -> JSON? {
-        return array?[idx] ?? obj?["\(idx)"]
-    }
-    
-    /// not very advanced, but supports really bassic `.` path access
-    public subscript(path: [String]) -> JSON? {
-        var obj: JSON? = self
-        path.forEach { key in
-            if let idx = Int(key) {
-                obj = obj?[idx]
-            } else {
-                obj = obj?[key]
-            }
-        }
-        return obj
-    }
-
-    ////// not very advanced, but supports really bassic `.` path access
-    public subscript(path: String...) -> JSON? {
-        return self[path]
-    }
+//    public subscript(idx: Int) -> JSON? {
+//        return array?[idx] ?? obj?["\(idx)"]
+//    }
+//
+//    /// not very advanced, but supports really bassic `.` path access
+//    public subscript(path: [String]) -> JSON? {
+//        var obj: JSON? = self
+//        path.forEach { key in
+//            if let idx = Int(key) {
+//                obj = obj?[idx]
+//            } else {
+//                obj = obj?[key]
+//            }
+//        }
+//        return obj
+//    }
+//
+//    ////// not very advanced, but supports really bassic `.` path access
+//    public subscript(path: String...) -> JSON? {
+//        return self[path]
+//    }
 }
 
 extension Encodable  {

@@ -60,12 +60,23 @@ public struct NetworkResponse: Codable {
 
 extension NetworkResponse {
     public var json: JSON? {
-        try? body?.decode()
+        catching { try body?.decode() }
     }
+    
     public mutating func replaceBody(with: JSON) {
-        body = try? with.encoded()
+        body = catching { try with.encoded() }
     }
 }
+
+public func catching<U>(fileID: String = #fileID, line: Int = #line, function: String = #function, _ throwable: () throws -> U?) -> U? {
+    do {
+        return try throwable()
+    } catch {
+        Log.error(fileID: fileID, line: line, function: function, error)
+        return nil
+    }
+}
+
 
 extension NetworkResponse: CustomStringConvertible {
     public var description: String {

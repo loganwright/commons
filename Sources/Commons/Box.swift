@@ -1,7 +1,8 @@
+@propertyWrapper
 public final class Box<T> {
-    public var boxed: T
+    public var wrappedValue: T
 
-    public init(_ boxed: T) {
-        self.boxed = boxed
+    public init(wrappedValue: T) {
+        self.wrappedValue = wrappedValue
     }
 }

@@ -59,7 +59,6 @@ extension BasicHandler {
     public init<D: Decodable>(onSuccess: @escaping (D) -> Void) {
         self.init(basic: { result in
             guard let value = result.value else { return }
-            print("handling: \(D.self)")
             let decoded = try D.decode(value)
             onSuccess(decoded)
         })

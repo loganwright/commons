@@ -39,6 +39,33 @@ class JSONDataTests: XCTestCase {
 //        XCTAssertEqual(edata, edeco)
 //        XCTAssertEqual(estr, edeco)
     }
+    
+    func testJsonLinkedPathTests() {
+        var json = [
+            "here": [
+                "is": [
+                    "a": [
+                        "very": [
+                            "long": [
+                                "path": "<3"
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ] as JSON
+        
+        let woo = json.here?.is?.a
+        Log.info(woo)
+//        let a = (((((json.here as LinkedPath).is as LinkedPath).a as LinkedPath).very as LinkedPath).long as LinkedPath).path
+//        Log.info(a)
+        Log.info("")
+        let found = json.here.is.a.very.long.path?.string
+        XCTAssertEqual(found, "<3")
+        json.here.new = "new"
+        Log.info("")
+        json.here.is.a.very.long.update = 411
+    }
 }
 
 @available(iOS 14, *)
