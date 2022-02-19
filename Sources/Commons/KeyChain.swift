@@ -208,7 +208,7 @@ public struct GeneralCryptor {
         let aes = try AES256(key: key, iv: iv)
         let encrypted = try aes.encrypt(data)
         let package = Item(data: encrypted, iv: iv, salt: salt)
-        return try package.encoded()
+        return try package.encode()
     }
 
     public func decrypt(_ data: Data) throws -> Data {
@@ -250,7 +250,7 @@ public struct Files {
     }
 
     public func write<E: Encodable>(filename: String, _ ob: E, pretty: Bool = false) throws {
-        var data = try ob.encoded(pretty: pretty)
+        var data = try ob.encode(pretty: pretty)
         if encrypted {
             data = try GeneralCryptor.shared.encrypt(data)
         }

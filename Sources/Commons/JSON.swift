@@ -65,132 +65,20 @@ public enum JSON: Codable, Equatable {
     }
 }
 
-//@dynamicMemberLookup
-//extension Optional where Wrapped == JSON {
-//    public subscript(dynamicMember key: String) -> JSON? {
-//        get {
-//            return self.wrapped?[key]
-//        }
-//        set {
-//            let js = JSON.emptyObj
-//            fatalError()
-//        }
-//    }
-//}
+// MARK: Dynamic Path
 
-protocol Segment {
-    var segment: String { get }
-}
-
-
-@dynamicMemberLookup
-public struct Chain {
-    public private(set) var json: JSON
-    
+public struct Link {
     public let segment: String
-    @Box
-    private var links: [String] = []
-//    public private(set) var links: [Link] = []
-    
-//    public struct Link {
-//        public let chain: Chain
-//        public let segment: String
-//    }
-    
-    fileprivate init(_ json: JSON, segment: String) {
-        self.json = json
+    public init(_ segment: String) {
         self.segment = segment
     }
-    
-//    private init(_ json: JSON, segment: String, parent: LinkedPath?) {
-//        self.json = json
-//        self.segment = segment
-//        self.parent = parent
-//    }
-    
-    public subscript(dynamicMember key: String) -> Chain {
-        get {
-            links.append(key)
-            return self
-        } set {
-            self = newValue
-        }
-    }
-    
-    public subscript(dynamicMember key: String) -> JSON? {
-        get {
-            json[path + [key]]
-        }
-        set {
-//            fatalError()
-            json[path + [key]] = newValue
-        }
-    }
-    
-    /// recursive, don't go crazy on nested
-    /// properties lol
-    private var path: [String] {
-        [segment] + links
-    }
 }
-
-//@dynamicMemberLookup
-//public final class OldLinkedPath {
-//    public var json: JSON
-//    public let segment: String
-//    public let parent: LinkedPath?
-//
-//    fileprivate convenience init(_ json: JSON, segment: String) {
-//        self.init(json, segment: segment, parent: nil)
-//    }
-//
-//    private init(_ json: JSON, segment: String, parent: LinkedPath?) {
-//        self.json = json
-//        self.segment = segment
-//        self.parent = parent
-//    }
-//
-//    public subscript(dynamicMember key: String) -> LinkedPath {
-//        get {
-//            LinkedPath(json, segment: key, parent: self)
-//        }
-//        set {
-//            fatalError()
-//        }
-//    }
-//
-//    public subscript(dynamicMember key: String) -> JSON? {
-//        get {
-//            json[path + [key]]
-//        }
-//        set {
-//            json[path + [key]] = newValue
-//        }
-//    }
-//
-//    /// recursive, don't go crazy on nested
-//    /// properties lol
-//    private var path: [String] {
-//        guard let parent = parent else {
-//            return [self.segment]
-//        }
-//
-//        return parent.path + [self.segment]
-//    }
-//}
 
 @dynamicMemberLookup
 public struct LinkedPath {
     public var json: JSON
     public let root: Link
-    
-    public struct Link {
-        public let segment: String
-        public init(_ segment: String) {
-            self.segment = segment
-        }
-    }
-    
+
     @Box
     public var children: [Link] = []
 
@@ -198,12 +86,6 @@ public struct LinkedPath {
         self.json = json
         self.root = Link(segment)
     }
-    
-//    private init(_ json: JSON, segment: String, parent: LinkedPath?) {
-//        self.json = json
-//        self.segment = segment
-//        self.parent = parent
-//    }
     
     public subscript(dynamicMember key: String) -> LinkedPath {
         get {
@@ -224,6 +106,19 @@ public struct LinkedPath {
         }
     }
     
+    public subscript<C: Codable>(dynamicMember key: String) -> C? {
+        get {
+            catching {
+                try self[dynamicMember: key]?.convert()
+            }
+        }
+        set {
+            self[dynamicMember: key] = catching {
+                try newValue?.convert()
+            }
+        }
+    }
+    
     /// recursive, don't go crazy on nested
     /// properties lol
     private var path: [String] {
@@ -232,31 +127,6 @@ public struct LinkedPath {
 }
 
 extension JSON {
-    
-//    subscript(dynamicMember key: String) -> Int {
-//        get {
-//            889898
-//        }
-////        get {
-////            return self[key]
-////        }
-////        set {
-////            self[key] = newValue
-////        }
-//    }
-    
-    
-//    public subscript(dynamicMember key: String) -> Chain {
-//        get {
-//            Chain(self, segment: key)
-//        }
-//        set {
-//            self = newValue.json
-//        }
-//    }
-    
-    
-
     public subscript(dynamicMember key: String) -> LinkedPath {
         get {
             LinkedPath(self, segment: key)
@@ -274,58 +144,19 @@ extension JSON {
             self[key] = newValue
         }
     }
-//
-//    public subscript<C: Codable>(dynamicMember key: String) -> C? {
-//        get {
-//            do {
-//                return try self[key]?.convert()
-//            } catch {
-//                Log.error(error)
-//                return nil
-//            }
-//        }
-//        set {
-//            self[key] = try? newValue?.convert()
-//        }
-//    }
 
-//    public subscript(key: String) -> JSON? {
-//        get {
-//            switch key {
-//            case "first": return array?.first ?? obj?[key]
-//            case "last": return array?.last ?? obj?[key]
-//            default:
-//                return obj?[key] ?? Int(key).flatMap { self[$0] }
-//            }
-//        }
-//        set {
-//            guard var obj = self.obj else { fatalError("can't set non object type json: \(self)") }
-//            obj[key] = newValue
-//            self = .obj(obj)
-//        }
-//    }
-
-//    public subscript(idx: Int) -> JSON? {
-//        return array?[idx] ?? obj?["\(idx)"]
-//    }
-//
-//    /// not very advanced, but supports really bassic `.` path access
-//    public subscript(path: [String]) -> JSON? {
-//        var obj: JSON? = self
-//        path.forEach { key in
-//            if let idx = Int(key) {
-//                obj = obj?[idx]
-//            } else {
-//                obj = obj?[key]
-//            }
-//        }
-//        return obj
-//    }
-//
-//    ////// not very advanced, but supports really bassic `.` path access
-//    public subscript(path: String...) -> JSON? {
-//        return self[path]
-//    }
+    public subscript<C: Codable>(dynamicMember key: String) -> C? {
+        get {
+            catching {
+                try self[key]?.convert()
+            }
+        }
+        set {
+            self[key] = catching {
+                try newValue?.convert()
+            }
+        }
+    }
 }
 
 extension Encodable  {
@@ -352,8 +183,7 @@ extension Encodable  {
                 if let str = d.string {
                     return .str(str)
                 } else {
-                    Log.error("unable to convert Data to JSON, setting empty string")
-                    return .str("")
+                    throw "unable to convert Data to JSON, setting empty string"
                 }
             }
         default:
@@ -426,11 +256,8 @@ extension JSON {
         case .obj(let v):
             return v
         case .str(let str):
-            do {
-                return try str.data.decode()
-            } catch {
-                Log.error(error)
-                return nil
+            return catching {
+                try str.data.decode()
             }
         default:
             return nil
@@ -442,11 +269,8 @@ extension JSON {
         case .array(let v):
             return v
         case .str(let str):
-            do {
-                return try str.data.decode()
-            } catch {
-                Log.error(error)
-                return nil
+            return catching {
+                try str.data.decode()
             }
         default:
             return nil
@@ -468,9 +292,9 @@ extension JSON {
         case .str(let val):
             return Data(val.utf8)
         case .array(let arr):
-            return try? arr.encoded()
+            return catching { try arr.encode() }
         case .obj(let obj):
-            return try? obj.encoded()
+            return catching { try obj.encode() }
         case .int(let val):
             return Data(converting: val)
         case .double(let val):

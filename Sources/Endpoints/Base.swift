@@ -298,7 +298,7 @@ public class Base: Codable {
         }
         
         if _method != .get, let body = _body {
-            let body = try body.encoded()
+            let body = try body.encode()
             request.setBody(json: body)
         }
         return request

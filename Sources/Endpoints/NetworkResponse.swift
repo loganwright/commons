@@ -64,19 +64,9 @@ extension NetworkResponse {
     }
     
     public mutating func replaceBody(with: JSON) {
-        body = catching { try with.encoded() }
+        body = catching { try with.encode() }
     }
 }
-
-public func catching<U>(fileID: String = #fileID, line: Int = #line, function: String = #function, _ throwable: () throws -> U?) -> U? {
-    do {
-        return try throwable()
-    } catch {
-        Log.error(fileID: fileID, line: line, function: function, error)
-        return nil
-    }
-}
-
 
 extension NetworkResponse: CustomStringConvertible {
     public var description: String {

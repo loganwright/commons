@@ -30,9 +30,9 @@ class JSONDataTests: XCTestCase {
         let deco = try JSON.decode(data)
         let str = JSON.str(raw)
         
-        let edata = try data.encoded()
-        let edeco = try deco.encoded()
-        let estr = try str.encoded()
+        let edata = try data.encode()
+        let edeco = try deco.encode()
+        let estr = try str.encode()
         // this appears a json limitation
         Log.error("I think this is ok, you just need to know if your obj is jsondata or str")
         
@@ -40,7 +40,7 @@ class JSONDataTests: XCTestCase {
 //        XCTAssertEqual(estr, edeco)
     }
     
-    func testJsonLinkedPathTests() {
+    func testJsonLinkedPathTests() throws {
         var json = [
             "here": [
                 "is": [
@@ -55,16 +55,13 @@ class JSONDataTests: XCTestCase {
             ]
         ] as JSON
         
-        let woo = json.here?.is?.a
-        Log.info(woo)
-//        let a = (((((json.here as LinkedPath).is as LinkedPath).a as LinkedPath).very as LinkedPath).long as LinkedPath).path
-//        Log.info(a)
-        Log.info("")
         let found = json.here.is.a.very.long.path?.string
         XCTAssertEqual(found, "<3")
-        json.here.new = "new"
-        Log.info("")
+        let nnneeewww = "nnneeewww"
+        json.here.new = nnneeewww
+        XCTAssert(try json.encode().string?.contains(nnneeewww) == true)
         json.here.is.a.very.long.update = 411
+        XCTAssertEqual(json.here.is.a.very.long.update, 411)
     }
 }
 

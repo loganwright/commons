@@ -224,7 +224,6 @@ class PathIndexableTests: XCTestCase {
                 ]
 
         if let n = json[path], case let .str(result) = n {
-            print(result)
             XCTAssert(result == "d")
         } else {
             XCTFail("Expected result")

@@ -8,23 +8,18 @@ import Foundation
 ///
 /// right now only supports optionals :/
 @available(iOS 14, *)
+@available(macOS 11, *)
 @propertyWrapper
 public struct CodableStorage<C: Codable> {
     public var wrappedValue: C {
         get {
-            do {
-                return try backing.wrappedValue.decode()
-            } catch {
-                Log.error("codable storage failed decode: \(error)")
-                return initial
-            }
+            catching {
+                try backing.wrappedValue.decode()
+            } ?? initial
         }
         set {
-            do {
-                backing.wrappedValue = try newValue.encoded()
-//                backing.update()
-            } catch {
-                Log.error("codable storage failed encode: \(error)")
+            catching {
+                backing.wrappedValue = try newValue.encode()
             }
         }
     }
@@ -43,7 +38,7 @@ public struct CodableStorage<C: Codable> {
         
         let storage: AppStorage<Data>
         do {
-            let initial = try wrappedValue.encoded()
+            let initial = try wrappedValue.encode()
             storage = AppStorage<Data>(wrappedValue: initial, key, store: store)
         } catch {
             storage = AppStorage<Data>(wrappedValue: .init(), key, store: store)
@@ -51,6 +46,5 @@ public struct CodableStorage<C: Codable> {
         self.backing = storage
     }
 }
-
 
 #endif
