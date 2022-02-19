@@ -102,19 +102,6 @@ extension Int: PathIndexer {
             } else {
                 Log.error("invalid index: \(self) for array: \(array)")
             }
-            
-//            if let input = input {
-//                if index < mapped.count {
-//                    mapped[index] = input
-//                } else if index == mapped.count {
-//                    mapped.append(input)
-//                } else {
-//                    Log.error("invalid index: \(index) for array: \(array)")
-//                }
-//            } else {
-//                mapped.remove(at: index)
-//            }
-//            mutable[self] = new
         } else {
             mutable.remove(at: self)
         }
@@ -179,7 +166,6 @@ extension String: PathIndexer {
             Log.debug("setting arr: \(self)")
             Log.warn("CLARIFY SETTING AREA FOR STRINGS TO ARRAYS")
             // check if sub items have keys?
-            var mapped = array
             if let index = self.index {
                 index.set(input, to: &parent)
 //                if let input = input {
@@ -194,13 +180,14 @@ extension String: PathIndexer {
 //                    mapped.remove(at: index)
 //                }
             } else {
+                var mapped = array
                 mapped = array.map { val in
                     var mutable = val
                     self.set(input, to: &mutable)
                     return mutable
                 }
+                parent = type(of: parent).init(mapped)
             }
-            parent = type(of: parent).init(mapped)
         }
     }
 
