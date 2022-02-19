@@ -22,10 +22,10 @@ class EndpointsTests: XCTestCase {
 
     func testOrdered() throws {
         let orderedTestCases = [
-//            ("testGet", testGet),
-//            ("testPost", testPost),
-//            ("testError", testError),
-//            ("testBasicAuth", testBasicAuth),
+            ("testGet", testGet),
+            ("testPost", testPost),
+            ("testError", testError),
+            ("testBasicAuth", testBasicAuth),
             ("testSerialize", testSerialize),
         ]
 

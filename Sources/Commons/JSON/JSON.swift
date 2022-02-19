@@ -1,9 +1,5 @@
 import Foundation
 
-extension JSON {
-    public static let empty: JSON = .object([:])
-}
-
 /// a very basic JSON object that can help
 /// with the fuzzier side of data when working
 /// with swift

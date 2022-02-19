@@ -73,7 +73,7 @@ extension JSON {
 
 extension JSON {
     public init(_ kvp: KeyValuePairs<String, Any>) {
-        var ob = JSON.empty
+        var ob: JSON = [:]
         kvp.forEach { k, v in
             do {
                 ob[k] = try JSON(fuzzy: v)
