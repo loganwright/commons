@@ -24,7 +24,7 @@ extension Color {
     }
 }
 
-fileprivate var palette: [String] = [
+var basePalette: [String] = [
     "#5C4B51",
     "#8CBEB2",
     "#F2EBBF",
@@ -32,8 +32,7 @@ fileprivate var palette: [String] = [
     "#F06060",
 ]
 
-/// harmony colors, pairing w palette
-fileprivate var counterPalette: [String] = [
+var harmonyPalette: [String] = [
     "#4b5c56",
     "#8cbeb2",
     "#bfc6f2",
@@ -41,8 +40,7 @@ fileprivate var counterPalette: [String] = [
     "#60f0f0",
 ]
 
-
-fileprivate var aligncolors: [Color] = (palette + counterPalette).map(Color.init)
+var palette: [Color] = (basePalette + harmonyPalette).map(Color.init)
 extension Array {
     public subscript(revolving idx: Int) -> Element {
         self[idx % count]
@@ -53,13 +51,20 @@ extension Array {
 //}
 
 
-/// stack alignment - aligns subviews internally
+///
+/// stack alignment - aligns subviews internally to each other
 /// frame alignment - aligns the content WITHIN self (if content smaller than self)
 /// alignment guide - in a given alignment, how the view responds
 ///
+///     MyView()
 ///     .alignmentGuide(.leading) { d in
 ///         d[VerticalAlignment.center]
 ///     }
+///
+/// read this as 'if my parent's alignment guide is `.leading`,
+/// with our current dimensions `d`
+/// then `MyView`'s horizontal alignment is returned
+///
 ///
 
 extension CGSize {
@@ -92,7 +97,7 @@ extension Alignment: CustomStringConvertible {
 }
 
 let alignmentExampleSize = CGSize(width: 120, height: 120)
-let alignmeentNumberOfSubviews = 4
+let alignmentNumberOfSubviews = 4
 var inner: CGSize {
     .init(width: alignmentExampleSize.width * 0.72,
           height: alignmentExampleSize.height * 0.72
@@ -108,7 +113,7 @@ protocol StackExample {
 
 extension StackExample {
     var stackSize: CGSize { alignmentExampleSize }
-    var subviews: Int { alignmeentNumberOfSubviews }
+    var subviews: Int { alignmentNumberOfSubviews }
     var colorOffset: Int { return 1 }
 }
 
@@ -121,7 +126,7 @@ struct ZExample: View, StackExample {
             // ********
             ZStack(alignment: stackAlignment) {
                 ForEach(1...subviews, id: \.self) { idx in
-                    aligncolors[revolving: idx + colorOffset]
+                    palette[revolving: idx + colorOffset]
                         .frame(
                             width: stackSize.scaled(
                                 forIdx: idx,
@@ -139,7 +144,7 @@ struct ZExample: View, StackExample {
                 height: stackSize.height,
                 alignment: frameAlignment
             )
-            .border(aligncolors.first!)
+            .border(palette.first!)
 //            .alignmentGuide(.leading) { d in
 //                d[VerticalAlignment.center]
 //            }
@@ -149,7 +154,7 @@ struct ZExample: View, StackExample {
                     .alignStyled(size: 10)
                 Text(stackAlignment.description)
                     .alignStyled(size: 12, .medium)
-                Text("srame: ")
+                Text("frame: ")
                     .alignStyled(size: 10)
                 Text(frameAlignment.description)
                     .alignStyled(size: 12, .medium)
@@ -170,7 +175,7 @@ struct VExample: View, StackExample {
             // ********
             VStack(alignment: stackAlignment.horizontal) {
                 ForEach(1...subviews, id: \.self) { idx in
-                    aligncolors[revolving: idx + colorOffset]
+                    palette[revolving: idx + colorOffset]
                         .frame(
                             width: inner.scaled(
                                 forIdx: idx,
@@ -185,14 +190,14 @@ struct VExample: View, StackExample {
                 height: stackSize.height,
                 alignment: frameAlignment
             )
-            .border(aligncolors.first!)
+            .border(palette.first!)
 
             VStack(alignment: .leading) {
                 Text("stack: ")
                     .alignStyled(size: 10)
                 Text(stackAlignment.description)
                     .alignStyled(size: 12, .medium)
-                Text("srame: ")
+                Text("frame: ")
                     .alignStyled(size: 10)
                 Text(frameAlignment.description)
                     .alignStyled(size: 12, .medium)
@@ -215,7 +220,7 @@ struct HExample: View {
             // ********
             HStack(alignment: stackAlignment.vertical) {
                 ForEach(1...numberOfSubViews, id: \.self) { idx in
-                    aligncolors[revolving: idx + 1]
+                    palette[revolving: idx + 1]
                         .frame(
                             width: inner.width / Double(numberOfSubViews),
                             height: inner.scaled(forIdx: idx, total: numberOfSubViews).height
@@ -227,17 +232,18 @@ struct HExample: View {
                 height: size.height,
                 alignment: frameAlignment
             )
-            .border(aligncolors.first!)
+            .border(palette.first!)
 
             VStack(alignment: .leading) {
                 Text("stack: ")
                     .alignStyled(size: 10)
                 Text(stackAlignment.description)
                     .alignStyled(size: 12, .medium)
-                Text("srame: ")
+                Text("frame: ")
                     .alignStyled(size: 10)
                 Text(frameAlignment.description)
                     .alignStyled(size: 12, .medium)
+//                    .frame(width: <#T##CGFloat?#>, height: <#T##CGFloat?#>, alignment: <#T##Alignment#>)
             }
             .frame(alignment: .leading)
             .padding(4)
@@ -289,7 +295,8 @@ extension Pair where T == Alignment {
     
 }
 struct AlignmentExamples: View {
-    let pairs: [Pair<Alignment>] = [
+    let pairs: [Pair<Alignment>] = Alignment.allCases.allPairs
+    let classypairs: [Pair<Alignment>] = [
         ///
         (Alignment.top, Alignment.bottom),
         (Alignment.bottom, Alignment.top),
@@ -320,7 +327,7 @@ struct AlignmentExamples: View {
                         stackAlignment: pair.stack,
                         frameAlignment: pair.frame
                     )
-                    .background(aligncolors.first!.opacity(0.2))
+                    .background(palette.first!.opacity(0.2))
                 }
             }
             
@@ -333,7 +340,7 @@ struct AlignmentExamples: View {
                         stackAlignment: pair.stack,
                         frameAlignment: pair.frame
                     )
-                    .background(aligncolors.first!.opacity(0.2))
+                    .background(palette.first!.opacity(0.2))
                 }
             }
             
@@ -346,7 +353,7 @@ struct AlignmentExamples: View {
                         stackAlignment: pair.stack,
                         frameAlignment: pair.frame
                     )
-                    .background(aligncolors.first!.opacity(0.2))
+                    .background(palette.first!.opacity(0.2))
                 }
             }
         }

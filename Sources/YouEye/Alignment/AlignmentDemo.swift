@@ -233,8 +233,12 @@ struct DisplayView: View {
             Block(algn: binding(2)).frame(width: 300)
                 .alignmentGuide(self.model.stackAlignment, computeValue: { d in self.model.delayedAlgn[2].computedValue(d) })
             
-                        
-        }.frame(width: self.model.minimumContainer ? nil : width, alignment: self.model.frameAlignment).border(Color.red)
+            #warning("trace")
+        }
+        .border(Color.green)
+        .frame(width: 400)
+//        .frame(width: self.model.minimumContainer ? nil : width, alignment: self.model.frameAlignment)
+        .border(Color.red)
         
     }
     
