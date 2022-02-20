@@ -1,4 +1,5 @@
 import SwiftUI
+import Commons
 
 struct Example: View {
     var body: some View {
@@ -44,7 +45,7 @@ extension View {
 //            width.wrappedValue = scale * current.size.width
 //        }
 //        let scale = target.size.width / current.size.width
-        DispatchQueue.main.async {
+        main {
             width.wrappedValue = target.size.width
         }
         print("t: \(target.size)")
@@ -60,7 +61,7 @@ extension View {
 //            width.wrappedValue = scale * current.size.width
 //        }
 //        let scale = target.size.width / current.size.width
-        DispatchQueue.main.async {
+        main {
             padding.wrappedValue = abs(current.size.width - target.size.width)
         }
         print("t: \(target.size)")

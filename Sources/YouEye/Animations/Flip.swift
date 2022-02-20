@@ -1,4 +1,5 @@
 import SwiftUI
+import Commons
 
 extension View {
     public func spin(duration: Double = 2.4) -> some View {
@@ -72,9 +73,7 @@ fileprivate struct FlipCarousel: View {
             self.axis = .x
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3,
-                                      execute: change)
-//        after(3, execute: change)
+        after(3, on: .main, execute: change)
     }
 }
 
@@ -83,5 +82,6 @@ fileprivate struct FlipCarousel: View {
 struct FlipPreview: PreviewProvider {
     static var previews: some View {
         FlipCarousel()
+            .frame(width: 200, height: 200)
     }
 }

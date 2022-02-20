@@ -6,23 +6,6 @@ var testCircle: some View {
         .frame(width: 20, height: 20)
 }
 
-//extension View {
-//    func test
-//}
-
-//var colors: [Color] = [
-//    .pink,
-//    .yellow,
-//    .gray,
-//    .purple
-//]
-//
-////extension CGSize {
-////    func scal
-////}
-//
-//let outer = CGSize(width: 100, height: 100)
-
 struct TestPreviews: PreviewProvider {
     static var previews: some View {
         HStack {

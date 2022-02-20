@@ -87,17 +87,25 @@ extension Alignment: Hashable {
     }
 }
 
+var bigEnough: Bool {
+    #if os(macOS)
+    true
+    #else
+    UIDevice.current.userInterfaceIdiom == .pad
+    #endif
+}
+
 struct ContentView: View {
     
     var body: some View {
         Group {
-            if UIDevice.current.userInterfaceIdiom == .pad
+            if bigEnough
             {
                 GeometryReader { proxy in
             
                     VStack(spacing: 0) {
                         HStack(spacing: 0) {
-                            ControlsView().frame(width: 380).layoutPriority(1).background(Color(UIColor.secondarySystemBackground))
+                            ControlsView().frame(width: 380).layoutPriority(1).background(Color.gray)
 
                             DisplayView(width: proxy.size.width - 380).frame(maxWidth: proxy.size.width - 380).clipShape(Rectangle())//.border(Color.green, width: 3)
                             
@@ -105,7 +113,7 @@ struct ContentView: View {
 
                         VStack {
                             CodeView().frame(height: 300)
-                        }.frame(width: proxy.size.width, alignment: .center).background(Color(UIColor.secondarySystemBackground))
+                        }.frame(width: proxy.size.width, alignment: .center).background(Color.gray)
 
                         
                     }.environmentObject(Model())
@@ -153,7 +161,7 @@ struct ControlsView: View {
                     Text(".trailing").tag(HorizontalAlignment.trailing)
                 }.pickerStyle(SegmentedPickerStyle())
             }
-        }.padding(10).background(Color(UIColor.secondarySystemBackground))
+        }.padding(10).background(Color.gray)
     }
 }
 
@@ -405,6 +413,7 @@ enum AlignmentEnum: Equatable {
 }
 
 @available(iOS 15, *)
+@available(macOS 12, *)
 struct Demo: PreviewProvider {
     static var previews: some View {
         ContentView()

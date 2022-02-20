@@ -1,11 +1,16 @@
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+typealias NSColor = UIColor
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 extension Color {
     public var components: (r: Double, g: Double, b: Double, a: Double) {
         /// passing through UIColor because things like `Color.red`
         /// always return `nil` otherwise :/
-        let comps = UIColor(self).cgColor.components ?? []
+        let comps = NSColor(self).cgColor.components ?? []
         return (
             comps[safe: 0] ?? 0,
             comps[safe: 1] ?? 0,

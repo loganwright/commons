@@ -51,7 +51,7 @@ struct LKJHKLJHLK: PreviewProvider {
         ZStack(alignment: .trailing) {
             GeometryReader { geo in
                 Rectangle()
-                    .fill(.pink)
+                    .fill(palette[4])
                     .frame(width: geo.size.width * 0.8)
                 Text("hello")
             }

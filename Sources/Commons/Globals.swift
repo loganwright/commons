@@ -1,6 +1,15 @@
 import Foundation
 
-public let IS_TESTING = NSClassFromString("XCTest") != nil
+//public let IS_TESTING = NSClassFromString("XCTest") != nil
+public let IS_TESTING: Bool = {
+    #if os(iOS)
+    NSClassFromString("XCTest") != nil
+    #else
+    Log.critical("fix")
+    #warning("need to think about best way to deal w this, crashing previews")
+    return false
+    #endif
+}()
 
 public let IS_SIMULATOR: Bool = {
     #if targetEnvironment(simulator)

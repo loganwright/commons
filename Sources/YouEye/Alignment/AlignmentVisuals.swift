@@ -243,7 +243,6 @@ struct HExample: View {
                     .alignStyled(size: 10)
                 Text(frameAlignment.description)
                     .alignStyled(size: 12, .medium)
-//                    .frame(width: <#T##CGFloat?#>, height: <#T##CGFloat?#>, alignment: <#T##Alignment#>)
             }
             .frame(alignment: .leading)
             .padding(4)
@@ -279,13 +278,32 @@ struct Pair<T>: Identifiable {
     let lhs: T
     let rhs: T
 }
+
 extension Array {
-    var allPairs: [Pair<Element>] {
+    var allPossiblePairs: [Pair<Element>] {
         var pairs = [Pair<Element>]()
         self.forEach { item in
             pairs += self.map { .init(lhs: item, rhs: $0) }
         }
         return pairs
+    }
+}
+
+extension Array where Element == Pair<Alignment> {
+    static var overview: [Pair<Alignment>] {
+        return [
+            ///
+            (Alignment.top, Alignment.bottom),
+            (Alignment.bottom, Alignment.top),
+            (Alignment.leading, Alignment.trailing),
+            (Alignment.trailing, Alignment.leading),
+            ///
+            (Alignment.topLeading, Alignment.bottomTrailing),
+            (Alignment.topTrailing, Alignment.bottomLeading),
+            (Alignment.bottomTrailing, Alignment.topLeading),
+            (Alignment.bottomLeading, Alignment.topTrailing),
+        ] .map(Pair.init)
+        
     }
 }
 
@@ -295,32 +313,41 @@ extension Pair where T == Alignment {
     
 }
 struct AlignmentExamples: View {
-    let pairs: [Pair<Alignment>] = Alignment.allCases.allPairs
-    let classypairs: [Pair<Alignment>] = [
-        ///
-        (Alignment.top, Alignment.bottom),
-        (Alignment.bottom, Alignment.top),
-        (Alignment.leading, Alignment.trailing),
-        (Alignment.trailing, Alignment.leading),
-        ///
-        (Alignment.topLeading, Alignment.bottomTrailing),
-        (Alignment.topTrailing, Alignment.bottomLeading),
-        (Alignment.bottomTrailing, Alignment.topLeading),
-        (Alignment.bottomLeading, Alignment.topTrailing),
-    ] .map(Pair.init)
+    /// currently visible pairs
+    /// the accessor of currently vis keyPath
+    var pairs: [Pair<Alignment>] { self[keyPath: viewing] }
     
-    let columns = [
-        GridItem(.fixed(alignmentExampleSize.width), spacing: 8),
-        GridItem(.fixed(alignmentExampleSize.width), spacing: 8),
-        GridItem(.fixed(alignmentExampleSize.width), spacing: 8),
-        GridItem(.fixed(alignmentExampleSize.width), spacing: 8),
-    ]
+    @State private var viewing: KeyPath<Self, [Pair<Alignment>]> = \.overview
+    
+    /// displays every possible combination
+    let allPossibilitoes: [Pair<Alignment>] = Alignment.allCases.allPossiblePairs
+    /// displays opposites, best for overview
+    let overview: [Pair<Alignment>] = .overview
+    
+    let columns: [GridItem] = {
+        let count: Int
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            count = 4
+        } else {
+            count = 3
+        }
+        #else
+        // mac
+        count = 4
+        #endif
+        return [GridItem](
+            repeating: GridItem(.fixed(alignmentExampleSize.width), spacing: 8),
+            count: count
+        )
+    }()
     
     var body: some View {
         ScrollView {
             Text("Z Stack")
                 .alignStyled(size: 24, .thin)
             
+            #warning("this can all be consolidated, lots of duped code")
             LazyVGrid(columns: columns) {
                 ForEach(pairs) { pair in
                     ZExample(
@@ -357,29 +384,7 @@ struct AlignmentExamples: View {
                 }
             }
         }
-        
-//        VStack {
-//            HStack {
-//                ForEach(pairs.prefix(4)) { pair in
-//                    ZExample(
-//                        stackAlignment: pair.stack,
-//                        frameAlignment: pair.frame
-////                        numberOfSubViews: 6
-//                    )
-//                }
-//            }
-//            HStack {
-//                ForEach(pairs[4...7]) { pair in
-//                    ZExample(
-//                        stackAlignment: pair.stack,
-//                        frameAlignment: pair.frame,
-//                        numberOfSubViews: 6
-//                    )
-//                }
-//            }
-            
-        }
-//    }
+    }
 }
 
 
