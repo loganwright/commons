@@ -19,39 +19,60 @@ struct SetBorder: AnimatableModifier {
     }
     
     func body(content: Content) -> some View {
-        if !enable {
+        ZStack {
             content
-        }
-        else {
-            ZStack {
-                content
-                Circle()
-                    .fill(.yellow)
-                    .frame(width: 40, height: 40)
+            if enable {
+                DashedBorder(width: 4)
+                    .fill(palette[8])
                     .matchedGeometryEffect(
                         id: "border",
                         in: matchymatch
                     )
-                    .transition(.identity)
             }
-//            content
-//                .overlay(
-//                    Circle()
-//                        .fill(.yellow)
-//                        .frame(width: 40, height: 40)
-//                        .matchedGeometryEffect(
-//                            id: "border",
-//                            in: matchymatch
-//                        )
-//                    Color
-//                        .clear
-//                        .matchedGeometryEffect(
-//                            id: "border",
-//                            in: matchymatch
-//                        )
-//                        .dashedOverlay(.black)
-//                )
         }
+//        if !enable {π
+//            content
+//        } else {
+//            ZStack {
+//
+//                content
+//                DashedBorder(width: 4)
+//                    .fill(palette[8])
+//                    .matchedGeometryEffect(
+//                        id: "border",
+//                        in: matchymatch
+//                    )
+//            }
+            
+//            ZStack {
+//                content
+//                Circle()
+//                    .fill(.yellow)
+//                    .frame(width: 40, height: 40)
+//                    .matchedGeometryEffect(
+//                        id: "border",
+//                        in: matchymatch
+//                    )
+//                    .transition(.identity)
+//            }
+            //            content
+            //                .overlay(
+            //                    Circle()
+            //                        .fill(.yellow)
+            //                        .frame(width: 40, height: 40)
+            //                        .matchedGeometryEffect(
+            //                            id: "border",
+            //                            in: matchymatch
+            //                        )
+            //                    Color
+            //                        .clear
+            //                        .matchedGeometryEffect(
+            //                            id: "border",
+            //                            in: matchymatch
+            //                        )
+            //                        .dashedOverlay(.black)
+            //                )
+//        }
     }
 }
 
@@ -65,7 +86,7 @@ struct MatchyHost: View {
     @State private var foh: Bool = false
     
     private func set(_ kp: KeyPath<MatchyHost, Binding<Bool>>) {
-        withAnimation(.linear(duration: 1.2)) {
+        withAnimation(.linear(duration: 0.62)) {
             two = false
             one = false
             tre = false
@@ -73,6 +94,19 @@ struct MatchyHost: View {
             self[keyPath: kp].wrappedValue = true
         }
     }
+    
+    @ViewBuilder
+    var border: some View {
+        DashedBorder(width: 4)
+            .fill(palette[8])
+            .zIndex(1)
+            .transition(AnyTransition.identity.combined(with: .identity))
+//            .matchedGeometryEffect(
+//                id: "border",
+//                in: matchyspace
+//            )
+    }
+    
     var body: some View {
         VStack {
             HStack {
@@ -83,15 +117,14 @@ struct MatchyHost: View {
                     }
                     
                     if one {
-                        DashedBorder(width: 4)
-                            .fill(palette[8])
+                        border
                             .matchedGeometryEffect(
                                 id: "border",
                                 in: matchyspace
                             )
                     }
                 }
-//                .modifier(SetBorder(enable: $one))
+                //                .modifier(SetBorder(enable: $one))
                 
                 ZStack {
                     palette[5]
@@ -100,12 +133,11 @@ struct MatchyHost: View {
                     }
                     
                     if two {
-                    DashedBorder(width: 4)
-                        .fill(palette[8])
-                        .matchedGeometryEffect(
-                            id: "border",
-                            in: matchyspace
-                        )
+                        border
+                            .matchedGeometryEffect(
+                                id: "border",
+                                in: matchyspace
+                            )
                     }
                 }
 //                .modifier(SetBorder(enable: $two))
@@ -117,8 +149,7 @@ struct MatchyHost: View {
                         self.set(\.$tre)
                     }
                     if tre {
-                        DashedBorder(width: 4)
-                            .fill(palette[8])
+                        border
                             .matchedGeometryEffect(
                                 id: "border",
                                 in: matchyspace
@@ -134,8 +165,7 @@ struct MatchyHost: View {
                     }
                     
                     if foh {
-                        DashedBorder(width: 4)
-                            .fill(palette[8])
+                        border
                             .matchedGeometryEffect(
                                 id: "border",
                                 in: matchyspace
