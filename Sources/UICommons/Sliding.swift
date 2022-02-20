@@ -1,4 +1,5 @@
 #if canImport(UIKit)
+
 import UIKit
 
 extension Array where Element == UIView {
@@ -28,4 +29,5 @@ extension Array where Element == UIView {
         animation(3).animations(to(self)).options(.curveEaseInOut)
     }
 }
+
 #endif

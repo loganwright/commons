@@ -1,5 +1,7 @@
 #if canImport(UIKit)
+
 import UIKit
+
 extension UIFont {
     public static func helvetica(_ size: CGFloat) -> UIFont {
         return UIFont(name: "HelveticaNeue", size: size)!
@@ -11,4 +13,5 @@ extension UIFont {
         return UIFont(name: "HelveticaNeue-Bold", size: size)!
     }
 }
+
 #endif

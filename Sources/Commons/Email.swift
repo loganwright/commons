@@ -23,3 +23,5 @@ extension String {
         return emailPred.evaluate(with: self)
     }
 }
+
+// UICommons

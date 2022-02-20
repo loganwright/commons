@@ -1,4 +1,3 @@
-#if canImport(SwiftUI)
 import SwiftUI
 import Foundation
 
@@ -7,8 +6,6 @@ import Foundation
 /// was creating issues
 ///
 /// right now only supports optionals :/
-@available(iOS 14, *)
-@available(macOS 11, *)
 @propertyWrapper
 public struct CodableStorage<C: Codable> {
     public var wrappedValue: C {
@@ -46,5 +43,3 @@ public struct CodableStorage<C: Codable> {
         self.backing = storage
     }
 }
-
-#endif

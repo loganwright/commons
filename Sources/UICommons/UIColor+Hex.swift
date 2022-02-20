@@ -1,4 +1,5 @@
-#if os(iOS)
+#if canImport(UIKit)
+
 import UIKit
 import Commons
 
@@ -46,4 +47,5 @@ extension CGColor {
         ui.cgColor
     }
 }
+
 #endif

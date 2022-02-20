@@ -117,4 +117,5 @@ extension KeyPath where Root: NSObject {
         NSExpression(forKeyPath: self).keyPath
     }
 }
+
 #endif

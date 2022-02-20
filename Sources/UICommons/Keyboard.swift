@@ -1,4 +1,5 @@
 #if canImport(UIKit)
+
 import UIKit
 import Commons
 
@@ -145,4 +146,5 @@ extension Notification {
         return curve
     }
 }
+
 #endif

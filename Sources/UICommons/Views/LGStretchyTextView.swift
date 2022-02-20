@@ -1,4 +1,5 @@
-#if os(iOS)
+#if canImport(UIKit)
+
 import UIKit
 import Commons
 
@@ -240,4 +241,5 @@ public class LGStretchyTextView : UITextView, UITextViewDelegate {
         return self.stretchyTextViewDelegate?.stretchyTextViewShouldReturn?(self) ?? true
     }
 }
+
 #endif

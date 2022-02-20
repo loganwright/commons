@@ -1,4 +1,4 @@
-#if os(iOS)
+#if canImport(UIKit)
 
 import Foundation
 import UIKit
@@ -50,4 +50,5 @@ extension UIImage {
         return image
     }
 }
+
 #endif

@@ -1,5 +1,5 @@
-import XCTest
 #if canImport(Combine)
+import XCTest
 
 import Combine
 @testable import Commons

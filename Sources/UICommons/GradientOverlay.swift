@@ -266,4 +266,5 @@ extension GradientOverlay {
         gradient.animationKeys()?.set.union(["startPoint", "endPoint"]).count == 2
     }
 }
+
 #endif

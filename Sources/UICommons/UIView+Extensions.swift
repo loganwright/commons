@@ -1,4 +1,5 @@
 #if canImport(UIKit)
+
 import UIKit
 
 extension UIView {
@@ -12,7 +13,7 @@ extension UIView {
 }
 
 extension UIView {
-    func snapshotImage() -> UIImage {
+    public func snapshotImage() -> UIImage {
         // Begin context
         UIGraphicsBeginImageContextWithOptions(self.bounds.size, false, UIScreen.main.scale)
 
@@ -25,4 +26,5 @@ extension UIView {
         return image!
     }
 }
+
 #endif
