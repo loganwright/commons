@@ -74,7 +74,6 @@ extension RangeReplaceableCollection {
     }
 }
 
-@available(iOS 13, *)
 extension Array where Element: Identifiable {
     @inlinable public func first(matchingId id: Element.ID) -> Element? {
         first(where: \.id, matches: id)

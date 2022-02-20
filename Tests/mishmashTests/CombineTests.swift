@@ -5,7 +5,6 @@ import Combine
 @testable import Commons
 @testable import Endpoints
 
-@available(iOS 13.0, *)
 final class AlwaysTests: XCTestCase {
     func testItEmitsASingleValue() {
     }

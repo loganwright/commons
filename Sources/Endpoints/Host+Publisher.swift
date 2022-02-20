@@ -1,12 +1,10 @@
 #if canImport(Combine)
 import Combine
 
-@available(iOS 13.0, *)
 extension Base {
     public var publisher: BasePublisher { BasePublisher(self) }
 }
 
-@available(iOS 13.0, *)
 public class BasePublisher: Publisher {
     public typealias Output = NetworkResponse
     public typealias Failure = Error
@@ -33,7 +31,6 @@ public class BasePublisher: Publisher {
     }
 }
 
-@available(iOS 13.0, *)
 extension BasePublisher {
     public final class Subscription<S: Subscriber>
     where S.Input == Output, S.Failure == Failure {
@@ -45,14 +42,12 @@ extension BasePublisher {
     }
 }
 
-@available(iOS 13.0, *)
 extension BasePublisher.Subscription: Cancellable {
     public func cancel() {
         subscriber = nil
     }
 }
 
-@available(iOS 13.0, *)
 extension BasePublisher.Subscription: Subscription {
     public func request(_ demand: Subscribers.Demand) {
         // ignoring command, single val

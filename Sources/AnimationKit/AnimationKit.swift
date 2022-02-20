@@ -117,14 +117,4 @@ extension Animation {
     }
 }
 
-// MARK: Breakout
-extension DispatchGroup {
-    public func onComplete(_ block: @escaping () -> Void) {
-        DispatchQueue.global().async {
-            self.wait()
-            DispatchQueue.main.async(execute: block)
-        }
-    }
-}
-
 #endif

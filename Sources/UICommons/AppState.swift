@@ -58,7 +58,6 @@ extension Int {
 }
 
 extension UIDevice {
-    @available(iOS 11, *)
     public var hasPhysicalHomeButton: Bool {
         /// on iPhone X or phones w swipe instead of button, the tab bar seems taller and we position differently..
         /// we're detecting this by seeing if the window has insets that need to be accounted for
@@ -66,7 +65,6 @@ extension UIDevice {
     }
 }
 extension UIDevice {
-    @available(iOS 11, *)
     public var hasNotch: Bool {
         // 20 is the status bar, hacky, but ya, had to do it for some screens /sorry
         return abs(keyWindow.safeAreaInsets.top) > 20

@@ -42,7 +42,7 @@ struct Bar: View {
     let color: Color
 
     var body: some View {
-        VStack {
+        ZStack {
             Spacer()
             
             Rectangle()

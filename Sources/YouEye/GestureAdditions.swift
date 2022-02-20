@@ -1,4 +1,3 @@
-#if !os(tvOS)
 import SwiftUI
 
 /// use `view.onTapGesture` as you normally would
@@ -25,4 +24,3 @@ extension View {
         self.modifier(TapWithLocation(response: handler))
     }
 }
-#endif

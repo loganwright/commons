@@ -1,6 +1,5 @@
 import SwiftUI
 
-@available(iOS 13.0, *)
 extension View {
     /// inverse mask:
     /// https://www.raywenderlich.com/7589178-how-to-create-a-neumorphic-design-with-swiftui

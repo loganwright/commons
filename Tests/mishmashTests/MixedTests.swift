@@ -99,7 +99,6 @@ class JSONDataTests: XCTestCase {
     }
 }
 
-@available(iOS 14, *)
 class CodableStorageTests: XCTestCase {
     struct Item: Codable, Equatable {
         let id: String
