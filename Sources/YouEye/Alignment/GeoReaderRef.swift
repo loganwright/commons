@@ -76,7 +76,7 @@ struct SetBorder: AnimatableModifier {
     }
 }
 
-
+@available(iOS 15, *)
 struct MatchyHost: View {
     @Namespace private var matchyspace
 #warning("should support matching, not just triggers (like popover)")
@@ -176,9 +176,11 @@ struct MatchyHost: View {
             }
         }
         .frame(width: 200, height: 200)
+        .buttonStyle(.plain)
     }
 }
 
+@available(iOS 15, *)
 struct MatchedEffectPreview: PreviewProvider {
     static var previews: some View {
         MatchyHost()
