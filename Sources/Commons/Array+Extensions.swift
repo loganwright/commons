@@ -1,12 +1,14 @@
 import Foundation
 
 extension Array {
+    /// the last accessible index
     public var lastIdx: Int {
         return count - 1
     }
 }
 
 extension Array {
+    /// returns `nil` if empty or out of range
     public subscript(safe idx: Int) -> Element? {
         guard 0 <= idx, idx < count else { return nil }
         return self[idx]
@@ -14,6 +16,21 @@ extension Array {
 }
 
 
+extension Array {
+    /// modulo indexed, always produces an element
+    /// if there is at least one
+    ///
+    ///     let list = ["a", "b", "c"]
+    ///     list[0] // a
+    ///     list[1] // b
+    ///     list[2] // c
+    ///     list[3] // a
+    ///     list[4] // b
+    ///
+    public subscript(revolving idx: Int) -> Element {
+        self[idx % count]
+    }
+}
 
 extension Sequence where Element: EncapsulationProtocol {
     public func flatten() -> [Element.Wrapped] {

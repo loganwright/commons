@@ -16,13 +16,9 @@ public struct StretchyScrollView<Content> : View where Content : View {
     
     public var body: some View {
         ScrollView(axes, showsIndicators: showsIndicators) {
-            content.frame(maxWidth: .infinity).padding(0).background(
-                GeometryReader { geo -> Color in
-                    #warning("import dep")
-                    DispatchQueue.main.async { contentSize = geo.size }
-                    return .clear
-                }
-            )
+            content.frame(maxWidth: .infinity).padding(0).passGeometry { geo in
+                contentSize = geo.size
+            }
         }
         .frame(
             maxWidth: axes.contains(.horizontal)

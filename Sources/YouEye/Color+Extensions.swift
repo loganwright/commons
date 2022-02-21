@@ -6,6 +6,8 @@ typealias NSColor = UIColor
 import AppKit
 #endif
 
+import Commons
+
 extension Color {
     public var components: (r: Double, g: Double, b: Double, a: Double) {
         /// passing through UIColor because things like `Color.red`
@@ -20,13 +22,6 @@ extension Color {
     }
 }
 
-extension Array {
-    subscript(safe idx: Int) -> Element? {
-        guard idx < count else { return nil }
-        return self[idx]
-    }
-}
-
 extension Color {
     public func mix(with other: Color, percent: Double) -> Color {
         let left = self.components
@@ -36,5 +31,31 @@ extension Color {
         let b = left.b + right.b - (left.b * percent)
         
         return Color(red: Double(r), green: Double(g), blue: Double(b))
+    }
+}
+
+// MARK: Hex
+
+extension Color {
+    public init(hex: String) {
+        guard hex.hasPrefix("#"), hex.count == 7 else {
+            fatalError("unexpected hex color format")
+        }
+        
+        let cleanHex = hex.uppercased()
+        let chars = Array(cleanHex)
+        let rChars = chars[1...2]
+        let gChars = chars[3...4]
+        let bChars = chars[5...6]
+        
+        var r: UInt64 = 0, g: UInt64 = 0, b: UInt64 = 0;
+        Scanner(string: .init(rChars)).scanHexInt64(&r)
+        Scanner(string: .init(gChars)).scanHexInt64(&g)
+        Scanner(string: .init(bChars)).scanHexInt64(&b)
+        self = Color(
+            red: CGFloat(r) / 255.0,
+            green: CGFloat(g) / 255.0,
+            blue: CGFloat(b) / 255.0
+        )
     }
 }

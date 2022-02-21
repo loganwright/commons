@@ -45,18 +45,18 @@ public enum Log: Int, CaseIterable, Codable, Equatable, Hashable {
     
     /// make log
     public func callAsFunction(fileID: String = #fileID, line: Int = #line, function: String = #function, _ msg: String) {
-        let crumb = BreadCrumb(fileID: fileID, line: line, function: function, level: self)
+        let crumb = LogMeta(fileID: fileID, line: line, function: function, level: self)
         output(crumb, msg: msg)
     }
     
     /// make log
     public func callAsFunction<T>(fileID: String = #fileID, line: Int = #line, function: String = #function, _ msg: T?) {
-        let crumb = BreadCrumb(fileID: fileID, line: line, function: function, level: self)
+        let crumb = LogMeta(fileID: fileID, line: line, function: function, level: self)
         let msg = msg.flatMap({ "\($0)" }) ?? "<nil>"
         output(crumb, msg: msg)
     }
     
-    private func output(_ crumb: BreadCrumb, msg: String) {
+    private func output(_ crumb: LogMeta, msg: String) {
         let entry = Entry(crumb: crumb, msg: msg)
         Log.outputs.log(entry)
     }
@@ -95,12 +95,12 @@ public protocol LogOutput {
 
 @dynamicMemberLookup
 public struct Entry: Codable {
-    let crumb: BreadCrumb
+    let crumb: LogMeta
     let msg: String
     
     var display: String { crumb.tag + msg }
     
-    subscript<T>(dynamicMember kp: KeyPath<BreadCrumb, T>) -> T {
+    subscript<T>(dynamicMember kp: KeyPath<LogMeta, T>) -> T {
         crumb[keyPath: kp]
     }
 }
@@ -179,7 +179,7 @@ extension Array: LogOutput where Element == LogOutput {
 
 /// small objects that contain metadata
 /// about where a given log came from
-public struct BreadCrumb: Codable, Equatable {
+public struct LogMeta: Codable, Equatable {
     /// currently only this system supported
     private var compact: String {
         var formatted = "[\(level.symbol.description)]"

@@ -1,14 +1,15 @@
 import SwiftUI
 
-public struct AnimatableGradient: View, Animatable {
+public struct AnimatableGradient: View {
     public let from: [Color]
     public let to: [Color]
-    public var pct: CGFloat
+//    public var pct: CGFloat
     
-    public var animatableData: CGFloat {
-        get { pct }
-        set { pct = newValue }
-    }
+    public var pct: CGFloat
+//    {
+//        get { pct }
+//        set { pct = newValue }
+//    }
 
     private var current: [Color] {
         zip(from, to).map { from, to in

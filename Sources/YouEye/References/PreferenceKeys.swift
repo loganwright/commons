@@ -5,7 +5,7 @@ struct ViewMeta: Equatable {
     var size: CGSize?
 }
 
-struct ViewTrail: PreferenceKey {
+struct NoteTrail: PreferenceKey {
     static var defaultValue: [String] = []
 
     static func reduce(value: inout [String], nextValue: () -> [String]) {
@@ -14,8 +14,8 @@ struct ViewTrail: PreferenceKey {
 }
 
 extension View {
-    func breadcrumb(_ info: String) -> some View {
-        self.preference(key: ViewTrail.self, value: [info])
+    func addNote(_ info: String) -> some View {
+        self.preference(key: NoteTrail.self, value: [info])
     }
 }
 
@@ -38,11 +38,10 @@ struct BaseView: View {
                         }
                         .padding(12)
                     }
-                    
                 }
             }
         }
-        .onPreferenceChange(ViewTrail.self) { trail in
+        .onPreferenceChange(NoteTrail.self) { trail in
             self.title = trail.joined(separator: "\n")
         }
     }
@@ -63,7 +62,7 @@ struct Child: View {
                 Text("Child: \(id)")
             }
         }
-        .breadcrumb("visiting: \(history.first!).\(history.last!)")
+        .addNote("visiting: \(history.first!).\(history.last!)")
         
     }
 }
