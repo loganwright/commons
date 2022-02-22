@@ -145,12 +145,6 @@ extension HStack: StackView {
     }
 }
 
-extension Text {
-    func commonStyle(size: CGFloat = 14, _ weight: Font.Weight = .light) -> some View {
-        self.font(.system(size: size, weight: weight, design: .monospaced))
-    }
-}
-
 extension Alignment {
     static var allCases: [Alignment] {
         return [

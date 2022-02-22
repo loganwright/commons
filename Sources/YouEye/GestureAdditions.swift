@@ -3,11 +3,11 @@ import SwiftUI
 /// use `view.onTapGesture` as you normally would
 /// adding an argument will respond with the
 /// touche's location
-struct TapWithLocation: ViewModifier {
-    public let response: (CGPoint) -> Void
+fileprivate struct TapWithLocation: ViewModifier {
+    fileprivate let response: (CGPoint) -> Void
     @State private var location: CGPoint = .zero
     
-    public func body(content: Content) -> some View {
+    fileprivate func body(content: Content) -> some View {
         content
             .onTapGesture {
                 response(location)

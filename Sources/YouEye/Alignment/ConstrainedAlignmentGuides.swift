@@ -17,20 +17,20 @@ struct ConstrainedAlignmentGuidesExample: View {
                     )
                     palette[9]
                         .alignmentGuide(.leading) { d in
-                            d[HorizontalAlignment.leading] + 32// - 120
+                            d[HorizontalAlignment.leading] + 82// - 120
                         }
                         .overlay(Rectangle().fill(palette[3]).frame(height: 8))
                     
                 }
                 .mask(Capsule())
             }
-            .padding([.leading, .trailing], padding / 2)
             /// this ensures that our vstack is constrained to its container
             .passGeometry { renderedSize in
                 let containerSize = geo.size
                 guard renderedSize.size.width > containerSize.width else { return }
                 padding = renderedSize.size.width - containerSize.width
             }
+            .padding([.leading, .trailing], padding / 2)
             .frame(width: geo.size.width)
         }
         .dashedBorder(palette[3])
@@ -53,7 +53,7 @@ struct DashedBorder: Shape {
                 lineCap: .round,
                 lineJoin: .bevel,
                 miterLimit: 8,
-                dash: [20], //[8, 4, 4],
+                dash: [40, 20, 20, 20], //[8, 4, 4],
                 dashPhase: 6
             )
         )

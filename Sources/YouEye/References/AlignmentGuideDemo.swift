@@ -245,7 +245,7 @@ struct DisplayView: View {
         }
         .border(Color.green)
         .frame(width: 400)
-//        .frame(width: self.model.minimumContainer ? nil : width, alignment: self.model.frameAlignment)
+        .frame(width: self.model.minimumContainer ? nil : width, alignment: self.model.frameAlignment)
         .border(Color.red)
         
     }

@@ -22,7 +22,6 @@ struct MatchedGeometryExample: View {
                 square(idx: 3, show: !=)
             }
         }
-        .frame(width: 200, height: 200)
         .buttonStyle(.testStyle)
     }
     

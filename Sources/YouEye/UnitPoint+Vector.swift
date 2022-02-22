@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// allows a unit point to be used in animations
 extension UnitPoint: VectorArithmetic {
     public mutating func scale(by rhs: Double) {
         x = x * rhs
