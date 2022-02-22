@@ -1,5 +1,52 @@
 import SwiftUI
 
+//extension Color {
+//    public init(hex: String) {
+//        guard hex.hasPrefix("#"), hex.count == 7 else {
+//            fatalError("unexpected hex color format")
+//        }
+//
+//        let cleanHex = hex.uppercased()
+//        let chars = Array(cleanHex)
+//        let rChars = chars[1...2]
+//        let gChars = chars[3...4]
+//        let bChars = chars[5...6]
+//
+//        var r: UInt64 = 0, g: UInt64 = 0, b: UInt64 = 0;
+//        Scanner(string: .init(rChars)).scanHexInt64(&r)
+//        Scanner(string: .init(gChars)).scanHexInt64(&g)
+//        Scanner(string: .init(bChars)).scanHexInt64(&b)
+//        self = Color(
+//            red: CGFloat(r) / 255.0,
+//            green: CGFloat(g) / 255.0,
+//            blue: CGFloat(b) / 255.0
+//        )
+//    }
+//}
+//
+//var basePalette: [String] = [
+//    "#5C4B51",
+//    "#8CBEB2",
+//    "#F2EBBF",
+//    "#F3B562",
+//    "#F06060",
+//]
+//
+//var harmonyPalette: [String] = [
+//    "#4b5c56",
+//    "#8cbeb2",
+//    "#bfc6f2",
+//    "#62a0f3",
+//    "#60f0f0",
+//]
+//
+//var palette: [Color] = (basePalette + harmonyPalette).map(Color.init)
+//extension Array {
+//    public subscript(revolving idx: Int) -> Element {
+//        self[idx % count]
+//    }
+//}
+
 extension CGSize {
     fileprivate func scaled(forIdx idx: Int, total: Int) -> CGSize {
         let wSegments = width / (Double(total) * 1.2)
@@ -29,7 +76,7 @@ extension Alignment: CustomStringConvertible {
         case .topLeading: return "topLeading"
         case .topTrailing: return "topTrailing"
         case .trailing: return "trailing"
-        default: return "unknown alignment: \(self)"
+        default: return "unknown alignment"
         }
     }
 }
@@ -115,7 +162,8 @@ extension Alignment {
             .topLeading,
             .topTrailing,
             .bottomTrailing,
-            .bottomLeading
+            .bottomLeading,
+            .center
         ]
     }
 }
@@ -170,6 +218,8 @@ struct AlignmentExamples: View {
     let allPossibilitoes: [Pair<Alignment>] = Alignment.allCases.allPossiblePairs
     /// displays opposites, best for overview
     let overview: [Pair<Alignment>] = .overview
+    /// only matching
+    let onlyMatching: [Pair<Alignment>] = zip(Alignment.allCases, Alignment.allCases).map(Pair.init)
     
     let columns: [GridItem] = {
         let count: Int
@@ -210,9 +260,9 @@ struct ExampleSet<Stack: StackView>: View where Stack.Content == ColorViews {
             .alignStyled(size: 24, .thin)
         
         LazyVGrid(columns: columns) {
-            ForEach(pairs) { pair in
-                ExampleCell<Stack>(stackAlignment: pair.stack,
-                                   frameAlignment: pair.frame)
+            ForEach(0..<pairs.count, id: \.self) { pair in
+                ExampleCell<Stack>(stackAlignment: pairs[0].stack,
+                                   frameAlignment: pairs[1].frame)
                     .background(palette.first!.opacity(0.2))
             }
         }
@@ -253,8 +303,12 @@ struct ExampleCell<Stack: StackView>: View where Stack.Content == ColorViews {
             .border(palette.first!)
             
             VStack(alignment: .leading) {
-                Text("stack: ")
+                HStack {
+                    Text("stack: \((stackAlignment == frameAlignment).description)")
+                        .foregroundColor(.red)
                     .alignStyled(size: 10)
+                    
+                }
                 Text(stackAlignment.description)
                     .alignStyled(size: 12, .medium)
                 Text("frame: ")
