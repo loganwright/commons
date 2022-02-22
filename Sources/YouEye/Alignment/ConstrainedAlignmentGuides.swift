@@ -44,12 +44,6 @@ struct AlignmentGuidePreview: PreviewProvider {
     }
 }
 
-extension View {
-    func dashedBorder(_ color: Color = .red, _ width: Double = 4) -> some View {
-        self.overlay(DashedBorder(width: width).fill(color))
-    }
-}
-
 struct DashedBorder: Shape {
     let width: Double
     func path(in rect: CGRect) -> Path {

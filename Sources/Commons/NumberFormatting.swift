@@ -1,8 +1,12 @@
 import Foundation
 
 extension Double {
+    @available(*, deprecated: 1.0, message: "use .limitPlaces(to:)")
     public var twoDecimalPlaces: String {
         String(format: "%.2f", self)
+    }
+    public func limitPlaces(to: Int = 2) -> String {
+        String(format: "%.\(to)f", self)
     }
 }
 

@@ -146,7 +146,7 @@ extension HStack: StackView {
 }
 
 extension Text {
-    func alignStyled(size: CGFloat, _ weight: Font.Weight = .light) -> some View {
+    func commonStyle(size: CGFloat = 14, _ weight: Font.Weight = .light) -> some View {
         self.font(.system(size: size, weight: weight, design: .monospaced))
     }
 }
@@ -257,7 +257,7 @@ struct ExampleSet<Stack: StackView>: View where Stack.Content == ColorViews {
     
     var body: some View {
         Text(title)
-            .alignStyled(size: 24, .thin)
+            .commonStyle(size: 24, .thin)
         
         LazyVGrid(columns: columns) {
             ForEach(0..<pairs.count, id: \.self) { pair in
@@ -306,20 +306,21 @@ struct ExampleCell<Stack: StackView>: View where Stack.Content == ColorViews {
                 HStack {
                     Text("stack: \((stackAlignment == frameAlignment).description)")
                         .foregroundColor(.red)
-                    .alignStyled(size: 10)
+                    .commonStyle(size: 10)
                     
                 }
                 Text(stackAlignment.description)
-                    .alignStyled(size: 12, .medium)
+                    .commonStyle(size: 12, .medium)
                 Text("frame: ")
-                    .alignStyled(size: 10)
+                    .commonStyle(size: 10)
                 Text(frameAlignment.description)
-                    .alignStyled(size: 12, .medium)
+                    .commonStyle(size: 12, .medium)
             }
             .frame(alignment: .leading)
             .padding(4)
         }
         .frame(alignment: .leading)
+        .debuggable()
     }
 }
 
