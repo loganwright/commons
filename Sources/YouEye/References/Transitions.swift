@@ -60,8 +60,41 @@ struct TransitionExample: View {
     }
 }
 
+@available(iOS 15, *)
+@available(macOS 12, *)
+struct ConfDioMediaOptionsList: View {
+    @State var confirmationPresented = false
+    var body: some View {
+        Menu {
+            Text("Export Media to iOS Library")
+            Text("Upload Local Media to Portal")
+            Text("Download Media From Portal")
+            Text("Delete Media Everywhere")
+            Button {
+                confirmationPresented = true
+            } label: {
+                Text("asd;flaksjdf")
+            }
+        } label: {
+            Text("Label")
+        }
+        .confirmationDialog("Confirm?", isPresented: $confirmationPresented) {
+            Button {
+                confirmationPresented = false
+            } label: {
+                Text("Hmmk")
+            }
+        }
+    }
+}
+
+@available(iOS 15, *)
+@available(macOS 12, *)
 struct TransitionRefPrev: PreviewProvider {
     static var previews: some View {
-        TransitionExample()
+        GeometryReader { proxy in
+            ConfDioMediaOptionsList()
+                .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
+        }
     }
 }

@@ -90,6 +90,7 @@ public func < (lhs: Log, rhs: Log) -> Bool {
 // MARK: Output
 
 public protocol LogOutput {
+    var levels: [Log] { get set }
     func log(_ entry: Entry)
 }
 
@@ -121,7 +122,7 @@ extension Array where Element == LogOutput {
 }
 
 public struct StandardLog: LogOutput {
-    public let levels: [Log]
+    public var levels: [Log]
     
     public init(_ levels: [Log]) {
         self.levels = levels
@@ -133,8 +134,20 @@ public struct StandardLog: LogOutput {
     }
 }
 
+extension Log {
+    static var memoryLogs: [Entry] {
+        guard let memory = outputs.memory else {
+            let crumb = LogMeta(level: .error)
+            let msg = "no memory logs in outputs"
+            return [Entry(crumb: crumb, msg: msg)]
+        }
+        
+        return memory.logs
+    }
+}
+
 public class MemoryLogs: LogOutput {
-    public let levels: [Log]
+    public var levels: [Log]
     public var max: Int
     
     // TODO: Organize by level
@@ -164,6 +177,14 @@ extension Array where Element == Entry {
 }
 
 extension Array: LogOutput where Element == LogOutput {
+    public var levels: [Log] {
+        get {
+            self.map(\.levels).reduce([], +).set.sorted { $0.rawValue < $1.rawValue }
+        }
+        set {
+            set(each: \.levels, to: newValue)
+        }
+    }
     public var memory: MemoryLogs? {
         self.lazy.compactMap { $0 as? MemoryLogs } .first
     }
@@ -214,15 +235,16 @@ public struct LogMeta: Codable, Equatable {
 // MARK: Formatting
 
 extension Date {
+    private static let df: DateFormatter = {
+        let df = DateFormatter()
+        df.dateFormat = "HH:mm:ss"
+        return df
+    }()
+    
     fileprivate var timeStamp: String {
-        let comps = Calendar.current.dateComponents([.hour, .minute, .second], from: self)
-        let h = comps.hour!.display(spaces: 2)
-        let m = comps.minute!.display(spaces: 2)
-        let s = comps.second!.display(spaces: 2)
-        return h + ":" + m + ":" + s
+        Date.df.string(from: self)
     }
 }
-
 
 // MARK: Precondition Formatting
 

@@ -38,6 +38,9 @@ class EndpointsTests: XCTestCase {
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .query(name: "flia", age: 234)
+            .beforeSend { req in
+                req.cachePolicy = .returnCacheDataElseLoad
+            }
             .typed(as: JSON.self)
             .on.success { json in
                 XCTAssertEqual(json.args?.name?.string, "flia")
@@ -153,6 +156,26 @@ extension XCTestCase {
         let expectation = XCTestExpectation(description: name)
         op(expectation)
         wait(for: [expectation], timeout: 20.0)
+    }
+}
+
+#endif
+
+#if canImport(XCTest)
+import XCTest
+
+extension TypedBuilder {
+    public func testing(on expectation: XCTestExpectation) -> Self {
+        self.base.testing(on: expectation).typed()
+    }
+}
+
+extension Base {
+    public func testing(on expectation: XCTestExpectation) -> Base {
+        self.on.either(expectation.fulfill)
+            .on.error { err in
+                XCTFail("\(err)")
+            }
     }
 }
 

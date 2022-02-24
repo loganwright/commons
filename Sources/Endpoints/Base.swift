@@ -1,43 +1,6 @@
 import Foundation
 import Commons
 
-extension Files {
-    static let vcr = Files(folder: "vcr", encrypted: false)
-}
-
-final class VCR {
-    let name: String
-    let folder: Files
-    
-    private init(name: String) {
-        self.name = name
-        // TODO: Write to outer folder where files can be committed
-        self.folder = Files(folder: "vcr/\(name)", encrypted: false)
-    }
-    
-    func request(_ req: URLRequest, continuation: NetworkCompletion) {
-        
-    }
-}
-
-final class VVVVCR: Client {
-    func callAsFunction(_ base: Base, _ continuation: @escaping NetworkCompletion) {
-        
-    }
-}
-
-extension VCR: Middleware {
-    func handle(_ result: Result<NetworkResponse, Error>, next: @escaping (Result<NetworkResponse, Error>) -> Void) {
-        
-        next(result)
-    }
-}
-//struct ASD: Middleware {
-//    func handle(_ result: Result<NetworkResponse, Error>, next: @escaping (Result<NetworkResponse, Error>) -> Void) {
-//        <#code#>
-//    }
-//}
-
 extension String {
     fileprivate var urlcomponents: URLComponents {
         URLComponents(string: self)!
@@ -59,15 +22,7 @@ extension URLComponents {
 }
 
 extension URLSession: Client {
-    public func callAsFunction(_ base: Base, _ continuation: @escaping NetworkCompletion) {
-        do {
-            let request = try base.makeRequest()
-            send(request, completion: continuation)
-        } catch {
-            continuation(.failure(error))
-        }
-    }
-    public func send(_ request: URLRequest, completion: @escaping (NetworkResult) -> Void) {
+    public func send(_ request: URLRequest, completion: @escaping NetworkCompletion) {
         self.dataTask(with: request) { (data, response, error) in
             main {
                 completion(.init(response as? HTTPURLResponse, body: data, error: error))
@@ -78,50 +33,20 @@ extension URLSession: Client {
 }
 
 public protocol Client {
-    func callAsFunction(_ base: Base, _ continuation: @escaping NetworkCompletion)
-}
-
-struct Timeout {
-    init(file: String = #file, line: Int = #line, _ duration: TimeInterval, execute work: @escaping () -> Void) throws {
-        let id = file.sourceFileName + "[\(line)]"
-        try self.init(id: id, duration, execute: work)
-    }
-    
-    init(id: String, _ duration: TimeInterval, execute work: @escaping () -> Void) throws {
-        let group = DispatchGroup()
-        group.enter()
-        background {
-            work()
-            group.leave()
-        }
-        let result = group.wait(timeout: .now() + duration)
-        guard result == .timedOut else { return }
-        throw "timed out of operation: \(id)"
-    }
+    func send(_ request: URLRequest, completion: @escaping NetworkCompletion)
 }
 
 @dynamicMemberLookup
-public class Base: Codable {
-    enum CodingKeys: String, CodingKey {
-        case baseUrl
-        case _method
-        case _path
-        case _headers
-        case _query
-        case _body
-        case _timeout
-    }
+public class Base {
     
+    /// the root url to append to
     public private(set) var baseUrl: String
     public var _method: HTTPMethod = .get
     public var _path: String = ""
     public var _headers: [String: String] = [:]
     public var _query: JSON? = nil
     public var _body: JSON? = nil
-
-    // additional attributes
     private var _timeout: TimeInterval = 30.0
-    fileprivate lazy var session: URLSession = URLSession(configuration: .default)
 
     public init(_ url: String) {
         let comps = url.urlcomponents
@@ -187,7 +112,6 @@ public class Base: Codable {
             // in practice however, it's a bit different
             Log.warn("query is traditionally disallowed on anything but a `get` request")
         }
-        assert(_method == .get, "query only allowed on get requests")
         return ObjBuilder(self, kp: \._query)
     }
 
@@ -224,6 +148,21 @@ public class Base: Codable {
         middlewares.removeAll(where: matching)
         return self
     }
+    
+    private var _beforeOps: [(inout URLRequest) -> Void] = []
+    public func beforeSend(_ op: @escaping () -> Void) -> Self {
+        beforeSend({ _ in op() })
+    }
+    
+    public func beforeSend(_ op: @escaping (inout URLRequest) -> Void) -> Self {
+        _beforeOps.append(op)
+        return self
+    }
+    
+    public func client(_ client: Client) -> Self {
+        self.networkClient = client
+        return self
+    }
 
     // MARK: Send
 
@@ -244,22 +183,16 @@ public class Base: Codable {
             return
         }
 
-        
-        requestTask(self, queue)
-    }
-    
-    public var requestTask: Client = URLSessionRequestTask()
-    
-    public struct URLSessionRequestTask: Client {
-        public func callAsFunction(_ base: Base, _ continuation: @escaping NetworkCompletion) {
-            do {
-                let request = try base.makeRequest()
-                base.session.send(request, completion: continuation)
-            } catch {
-                continuation(.failure(error))
-            }
+        do {
+            var request = try makeRequest()
+            _beforeOps.forEach { op in op(&request) }
+            networkClient.send(request, completion: queue)
+        } catch {
+            queue(.failure(error))
         }
     }
+    
+    public var networkClient: Client = URLSession(configuration: .default)
 
     public func makeRequest() throws -> URLRequest {
         guard let url = URL(string: expandedUrl) else {
@@ -608,22 +541,22 @@ extension Base {
 }
 
 
-#if canImport(XCTest)
-import XCTest
-
-extension TypedBuilder {
-    public func testing(on expectation: XCTestExpectation) -> Self {
-        self.base.testing(on: expectation).typed()
-    }
-}
-
-extension Base {
-    public func testing(on expectation: XCTestExpectation) -> Base {
-        self.on.either(expectation.fulfill)
-            .on.error { err in
-                XCTFail("\(err)")
-            }
-    }
-}
-
-#endif
+//#if canImport(XCTest)
+//import XCTest
+//
+//extension TypedBuilder {
+//    public func testing(on expectation: XCTestExpectation) -> Self {
+//        self.base.testing(on: expectation).typed()
+//    }
+//}
+//
+//extension Base {
+//    public func testing(on expectation: XCTestExpectation) -> Base {
+//        self.on.either(expectation.fulfill)
+//            .on.error { err in
+//                XCTFail("\(err)")
+//            }
+//    }
+//}
+//
+//#endif
