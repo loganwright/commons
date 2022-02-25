@@ -85,9 +85,9 @@ extension BaseWrapper {
 ///
 /// useful for combining for example multiple api calls into one
 public struct ChainDependency<D: Decodable>: Middleware {
-    private let map: (D) -> Base
+    private let map: (D) -> BaseWrapper
     
-    public init(_ map: @escaping (D) -> Base) {
+    public init(_ map: @escaping (D) -> BaseWrapper) {
         self.map = map
     }
     
@@ -100,5 +100,19 @@ public struct ChainDependency<D: Decodable>: Middleware {
         } catch {
             next(.failure(error))
         }
+    }
+}
+
+extension BaseWrapper {
+    /// chain subsequent requests that are dependent on the body of
+    /// a preceding request
+    public func chain<D: Decodable>(responseTo map: @escaping (D) -> BaseWrapper) -> Self {
+        middleware(ChainDependency(map))
+    }
+    
+    /// chain subsequent requests that are dependent on the body of
+    /// a preceding request
+    public func chain(responseTo map: @escaping (JSON?) -> BaseWrapper) -> Self {
+        middleware(ChainDependency(map))
     }
 }

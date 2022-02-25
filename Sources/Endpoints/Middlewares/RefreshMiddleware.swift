@@ -1,6 +1,7 @@
 import Foundation
 import Commons
 
+/// currently here as a reference, not sure how to genericize yet
 struct RefreshMiddleware: Middleware {
 
     let base: Base

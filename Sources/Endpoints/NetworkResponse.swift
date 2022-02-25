@@ -4,7 +4,6 @@ import Commons
 public typealias NetworkResult = Result<NetworkResponse, Error>
 public typealias NetworkCompletion = (NetworkResult) -> Void
 
-
 @propertyWrapper
 @dynamicMemberLookup
 public struct Archivable<T>: Codable where T: NSObject, T: NSCoding {
