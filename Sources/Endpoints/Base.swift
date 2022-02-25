@@ -569,6 +569,10 @@ public struct OnBuilder<Wrapped: BaseWrapper, D: Decodable> {
     public func success(_ success: @escaping (D) -> Void) -> Wrapped {
         base.middleware(BasicHandler(onSuccess: success))
     }
+    
+    public func success<Mapped: Decodable>(_ mapped: @escaping (Mapped) -> Void) -> Wrapped {
+        base.middleware(BasicHandler(onSuccess: mapped))
+    }
 
     public func error(_ error: @escaping () -> Void) -> Wrapped {
         base.middleware(BasicHandler(onError: { _ in error() }))
