@@ -104,7 +104,6 @@ class EndpointsTests: XCTestCase {
 
     func testError(_ group: XCTestExpectation) {
         Base.httpbin
-//            .get("status/{code}", code: 345)
             .get("status", 345)
             .contentType("application/json")
             .accept("application/json")
@@ -127,7 +126,6 @@ class EndpointsTests: XCTestCase {
             .get("basic-auth/{user}/{pass}", user: user, pass: pass)
             .accept("application/json")
             .basicAuth(user: user, password: pass)
-            .typed(as: JSON.self)
             .on.success { user in
                 XCTAssertEqual(user.authenticated?.bool, true)
             }

@@ -41,6 +41,20 @@ extension TypedBuilder: TypedBaseWrapper {
     public typealias ResponseType = D
 }
 
+@available(iOS 15, *)
+extension BaseWrapper {
+    public func send() async throws -> NetworkResponse {
+        try await withCheckedThrowingContinuation { continuation in
+            self.on.result(continuation.resume).send()
+        }
+    }
+    public func send<D: Decodable>(expecting: D.Type = D.self) async throws -> D {
+        try await withCheckedThrowingContinuation { continuation in
+            self.typed(as: D.self).on.either(continuation.resume).send()
+        }
+    }
+}
+
 extension BaseWrapper {
     
     // MARK: Base Accessors
@@ -65,7 +79,6 @@ extension BaseWrapper {
         let ep = Endpoint("")[keyPath: key]
         wrapped._path = wrapped._path.withTrailingSlash + ep.stringValue
         return PathBuilder(self, startingPath: wrapped._path)
-//        return builder
     }
 
     /// for better building
