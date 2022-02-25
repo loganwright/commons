@@ -38,15 +38,12 @@ class EndpointsTests: XCTestCase {
 
     func testGet(_ group: XCTestExpectation) {
         Base.httpbin
-            .get("get")
+            .get
+            .testGet
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .query(name: "flia", age: 234)
-//            .client(TrafficObserver.defaultObserver)
-//            .beforeSend { req in
-//                req.cachePolicy = .returnCacheDataElseLoad
-//            }
-//            .typed(as: JSON.self)
+            .client(TrafficObserver.defaultObserver)
             .on.success { json in
                 XCTAssertEqual(json.args?.name?.string, "flia")
                 XCTAssertEqual(json.args?.age?.int, 234)
@@ -62,7 +59,6 @@ class EndpointsTests: XCTestCase {
             .h.contentType("application/type")
             .h.accept("application/json")
             .body(name: "flia", age: 234)
-            .typed(as: JSON.self)
             .on.success { results in
                 /// the json is also nested under json lol, the httpbin api makes funny calls
                 let json = results["json"]
@@ -76,8 +72,8 @@ class EndpointsTests: XCTestCase {
     func testError(_ group: XCTestExpectation) {
         Base.httpbin
             .get("status/{code}", code: 345)
-            .header.contentType("application/json")
-            .header.accept("application/json")
+            .h.contentType("application/json")
+            .h.accept("application/json")
             .on.success { result in
                 XCTFail("should fail w error code")
             }

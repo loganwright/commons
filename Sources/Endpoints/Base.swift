@@ -494,6 +494,16 @@ public final class HeadersBuilder<Wrapper: BaseWrapper> {
 }
 
 extension BaseWrapper {
+    /// for use with a standard bearer token format
+    ///
+    ///     Authorization: Bearer \(token)
+    ///
+    public func bearer(token: String) -> Self {
+        self.h.authorization("Bearer \(token)")
+    }
+}
+
+extension BaseWrapper {
     public var logErrors: Self {
         self.on.error { error in
             Log.error(error)
