@@ -13,11 +13,7 @@ extension Endpoint {
     var api: Endpoint { "api/v{version}/" }
 }
 
-class MyAPI {
-    var users: some TypedBaseWrapper {
-        Base.httpbin.users.typed(as: EndpointsTests.Person.self)
-    }
-}
+typealias EndpointRequest = TypedBaseWrapper
 
 class EndpointsTests: XCTestCase {
     func testNotes() {
@@ -26,7 +22,7 @@ class EndpointsTests: XCTestCase {
     
     func testVersionReplacement() {
         let url = Base.httpbin.api(version: 0).expandedUrl
-        XCTAssertEqual(url, "https://httpbin.org/api/v0/")    
+        XCTAssertEqual(url, "https://httpbin.org/api/v0/")
     }
     
     func testUrlParts() {
@@ -93,6 +89,28 @@ class EndpointsTests: XCTestCase {
         let final = all.map(\.expandedUrl).set.first
         XCTAssertNotNil(final)
         XCTAssertEqual(final, "https://httpbin.org?age=234&name=flia")
+    }
+    
+    func testQueryArrayEncoding() {
+        let a = Base.httpbin.get.query(numbers: [1, 4, 6])
+        let b = Base.httpbin.get.query.numbers([1, 4, 6]) as Base
+        struct Object: Encodable {
+            var numbers: [Int] = [1, 4, 6]
+        }
+        let obj = Object()
+        let c = Base.httpbin.get.query(obj)
+        let d = Base.httpbin.get.q(numbers: [1, 4, 6])
+        let e = Base.httpbin.get.q.numbers([1, 4, 6]) as Base
+        let all = [
+            a, b, c, d, e
+        ]
+        let final = all.map(\.expandedUrl).set.first
+        XCTAssertNotNil(final)
+        XCTAssertEqual(final, "https://httpbin.org?numbers=1,4,6")
+        
+        let multikey = all.map { $0.encodeQueryArrays(using: .multiKeyed) }.map(\.expandedUrl).set.first
+        XCTAssertNotNil(multikey)
+        XCTAssertEqual(multikey, "https://httpbin.org?numbers=1&numbers=4&numbers=6")
     }
     
     func testBodyAPIOptions() throws {

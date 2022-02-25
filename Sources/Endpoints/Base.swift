@@ -20,6 +20,7 @@ extension URLSession: Client {
 
 // MARK: BaseWrapper
 
+/// allowing typed and untyped flexibility in parallel
 @dynamicMemberLookup
 public protocol BaseWrapper {
     var wrapped: Base { get }
@@ -35,6 +36,10 @@ extension TypedBuilder: BaseWrapper {
 
 protocol TypedBaseWrapper: BaseWrapper {
     associatedtype ResponseType: Decodable
+}
+
+extension Base: TypedBaseWrapper {
+    public typealias ResponseType = JSON
 }
 
 extension TypedBuilder: TypedBaseWrapper {
@@ -199,6 +204,11 @@ extension BaseWrapper {
         wrapped.networkClient = client
         return self
     }
+    
+    public func encodeQueryArrays(using strategy: Base.QueryArrayEncodingStrategy) -> Self {
+        wrapped.queryArrayEncodingStrategy = strategy
+        return self
+    }
 }
 
 // MARK: Responders
@@ -209,14 +219,14 @@ extension BaseWrapper {
     }
 }
 
-extension BaseWrapper { // where Self: Base {
+extension BaseWrapper {
     public var on: OnBuilder<Self, JSON> {
         OnBuilder(self)
     }
 }
 
-extension TypedBuilder {
-    public var on: OnBuilder<Self, D> {
+extension TypedBaseWrapper {
+    public var on: OnBuilder<Self, ResponseType> {
         OnBuilder(self)
     }
 }
@@ -238,6 +248,7 @@ public class Base {
     public var middlewares: [Middleware] = []
     public var beforeSends: [(inout URLRequest) -> Void] = []
     public var networkClient: Client = URLSession(configuration: .default)
+    public var queryArrayEncodingStrategy: QueryArrayEncodingStrategy = .commaSeparated
 
     public init(_ url: String) {
         let comps = url.urlcomponents
@@ -320,10 +331,9 @@ public class Base {
 
     // MARK: Query
 
-    enum QueryArrayEncodingStrategy {
+    public enum QueryArrayEncodingStrategy {
         case commaSeparated, multiKeyed
     }
-    let queryArrayEncodingStrategy: QueryArrayEncodingStrategy = .commaSeparated
 
     func makeQueryString(parameters: JSON) -> String {
         guard let object = parameters.object else {
@@ -395,7 +405,6 @@ public class Base {
 
 // MARK: ObjBuilder
 
-#warning("implement dynamic lookup on obj builder")
 ///
 ///so you can do:
 ///
