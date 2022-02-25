@@ -7,6 +7,10 @@ extension Base {
     static var httpbin: Base { Base("https://httpbin.org") }
 }
 
+extension Endpoint {
+    var testGet: Endpoint { "get" }
+}
+
 class EndpointsTests: XCTestCase {
     func testNotes() {
         Log.warn("should change name? ambiguous w Foundation.Host")
@@ -38,10 +42,11 @@ class EndpointsTests: XCTestCase {
             .header("Content-Type", "application/json")
             .header("Accept", "application/json")
             .query(name: "flia", age: 234)
-            .beforeSend { req in
-                req.cachePolicy = .returnCacheDataElseLoad
-            }
-            .typed(as: JSON.self)
+//            .client(TrafficObserver.defaultObserver)
+//            .beforeSend { req in
+//                req.cachePolicy = .returnCacheDataElseLoad
+//            }
+//            .typed(as: JSON.self)
             .on.success { json in
                 XCTAssertEqual(json.args?.name?.string, "flia")
                 XCTAssertEqual(json.args?.age?.int, 234)
@@ -53,7 +58,9 @@ class EndpointsTests: XCTestCase {
     func testPost(_ group: XCTestExpectation) {
         Base.httpbin.post("post")
             .contentType("application/json")
-            .accept("application/json")
+            .header("Content-Type", "application/json")
+            .h.contentType("application/type")
+            .h.accept("application/json")
             .body(name: "flia", age: 234)
             .typed(as: JSON.self)
             .on.success { results in

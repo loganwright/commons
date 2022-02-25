@@ -72,7 +72,7 @@ public struct ChainDependency<D: Decodable>: Middleware {
             // still needs background?
 //            background {
                 map(resp)
-                    .on.either(next)
+                    .on.result(next)
                     .send()
 //            }
         } catch {

@@ -1,24 +1,10 @@
 import Foundation
 import Commons
 
-extension String {
-    fileprivate var urlcomponents: URLComponents {
-        URLComponents(string: self)!
-    }
-}
-extension URLComponents {
-    fileprivate var baseUrl: String {
-        scheme! + "://" + host!
-    }
-    
-    fileprivate var _query: JSON? {
-        guard let items = queryItems else { return nil }
-        var obj = [String: JSON]()
-        items.forEach { item in
-            obj[item.name] = item.value.flatMap(JSON.string) ?? .null
-        }
-        return .object(obj)
-    }
+// MARK: Network Client
+
+public protocol Client {
+    func send(_ request: URLRequest, completion: @escaping NetworkCompletion)
 }
 
 extension URLSession: Client {
@@ -32,13 +18,156 @@ extension URLSession: Client {
     }
 }
 
-public protocol Client {
-    func send(_ request: URLRequest, completion: @escaping NetworkCompletion)
+// MARK: BaseWrapper
+
+@dynamicMemberLookup
+public protocol BaseWrapper {
+    var wrapped: Base { get }
 }
+
+extension Base: BaseWrapper {
+    public var wrapped: Base { self }
+}
+
+extension TypedBuilder: BaseWrapper {
+    public var wrapped: Base { base }
+}
+
+extension BaseWrapper {
+    // MARK: Base Accessors
+    
+    subscript<T>(dynamicMember kp: KeyPath<Base, T>) -> T {
+        wrapped[keyPath: kp]
+    }
+
+    subscript<T>(dynamicMember kp: WritableKeyPath<Base, T>) -> T {
+        wrapped[keyPath: kp]
+    }
+    
+    // MARK: Path Building
+    
+    /// add keys to EP in an extension to support
+    public subscript(dynamicMember key: KeyPath<Endpoint, Endpoint>) -> PathBuilder<Self> {
+        let ep = Endpoint("")[keyPath: key]
+        wrapped._path += ep.stringValue
+        return PathBuilder(self, startingPath: wrapped._path)
+//        return builder
+    }
+
+    /// for better building
+    public subscript(dynamicMember key: KeyPath<Endpoint, Endpoint>) -> Self {
+        let ep = Endpoint("")[keyPath: key]
+        wrapped._path += ep.stringValue
+        return self
+    }
+    
+    /// get, post, put, patch, delete
+    public subscript(dynamicMember key: KeyPath<HTTPMethods, HTTPMethod>) -> PathBuilder<Self> {
+        wrapped._method = HTTPMethods.group[keyPath: key]
+        return PathBuilder(self, startingPath: wrapped._path)
+    }
+
+    /// get, post, put, patch, delete
+    public subscript(dynamicMember key: KeyPath<HTTPMethods, HTTPMethod>) -> Self {
+        wrapped._method = HTTPMethods.group[keyPath: key]
+        return self
+    }
+    
+    // MARK: Headers
+    
+    public var h: HeadersBuilder<Self> { HeadersBuilder(self) }
+    public var header: HeadersBuilder<Self> { HeadersBuilder(self) }
+    
+    public subscript(dynamicMember key: KeyPath<HeaderKey, HeaderKey>) -> HeadersBuilderExistingKey<Self> {
+        let headerKey = HeaderKey(stringLiteral: "")[keyPath: key]
+        return .init(self, key: headerKey.stringValue)
+    }
+    
+    // MARK: Body/Query
+    
+    /// used to build the query of the request
+    /// dynamically, ie: `.query(key: val, key: 2)`
+    public var query: ObjBuilder<Self> {
+        if wrapped._method != .get {
+            // in practice however, it's a bit different
+            Log.warn("query is traditionally disallowed on anything but a `get` request")
+        }
+        return ObjBuilder(self, kp: \.wrapped._query)
+    }
+
+    /// used to build the body of the request
+    /// dynamically, ie: `.body(dynamic: "keys here")`
+    /// or `.body(entireObject)`
+    public var body: ObjBuilder<Self> {
+        ObjBuilder(self, kp: \.wrapped._body)
+    }
+}
+
+// MARK: Middlewares
+
+public enum MiddlewareInsert {
+    case front
+    case back
+}
+
+extension BaseWrapper {
+    public func middleware(_ middleware: Middleware, to: MiddlewareInsert = .back) -> Self {
+        switch to {
+        case .front:
+            wrapped.middlewares.insert(middleware, at: 0)
+        case .back:
+            wrapped.middlewares.append(middleware)
+        }
+        return self
+    }
+
+    public func drop(middleware matching: (Middleware) -> Bool) -> Self {
+        wrapped.middlewares.removeAll(where: matching)
+        return self
+    }
+}
+
+// MARK: Before Hooks
+
+extension BaseWrapper {
+    public func beforeSend(_ op: @escaping () -> Void) -> Self {
+        beforeSend({ _ in op() })
+    }
+    
+    public func beforeSend(_ op: @escaping (inout URLRequest) -> Void) -> Self {
+        wrapped.beforeSends.append(op)
+        return self
+    }
+    
+    public func client(_ client: Client) -> Self {
+        wrapped.networkClient = client
+        return self
+    }
+}
+
+// MARK: Responders
+
+extension BaseWrapper {
+    public func send() {
+        wrapped.send()
+    }
+}
+
+extension BaseWrapper { // where Self: Base {
+    public var on: OnBuilder<Self, JSON> {
+        OnBuilder(self)
+    }
+}
+
+extension TypedBuilder {
+    public var on: OnBuilder<Self, D> {
+        OnBuilder(self)
+    }
+}
+
 
 @dynamicMemberLookup
 public class Base {
-    
     /// the root url to append to
     public private(set) var baseUrl: String
     public var _method: HTTPMethod = .get
@@ -47,6 +176,12 @@ public class Base {
     public var _query: JSON? = nil
     public var _body: JSON? = nil
     private var _timeout: TimeInterval = 30.0
+    
+    /// submit url requests
+    ///
+    public var middlewares: [Middleware] = []
+    public var beforeSends: [(inout URLRequest) -> Void] = []
+    public var networkClient: Client = URLSession(configuration: .default)
 
     public init(_ url: String) {
         let comps = url.urlcomponents
@@ -55,144 +190,23 @@ public class Base {
         self._query = comps._query
     }
 
-    // MARK: PathBuilder
-
-    /// add keys to EP in an extension to support
-    public subscript(dynamicMember key: KeyPath<Endpoint, Endpoint>) -> PathBuilder {
-        let ep = Endpoint("")[keyPath: key]
-        _path += ep.stringValue
-        let builder = PathBuilder(self, startingPath: _path)
-        return builder
-    }
-
-    /// for better building
-    public subscript(dynamicMember key: KeyPath<Endpoint, Endpoint>) -> Self {
-        let ep = Endpoint("")[keyPath: key]
-        _path += ep.stringValue
-        return self
-    }
-
-    /// get, post, put, patch, delete
-    public subscript(dynamicMember key: KeyPath<PathBuilder, HTTPMethod>) -> PathBuilder {
-        let builder = PathBuilder(self, startingPath: _path)
-        self._method = builder[keyPath: key]
-        return builder
-    }
-
-    /// get, post, put, patch, delete
-    public subscript(dynamicMember key: KeyPath<PathBuilder, HTTPMethod>) -> Self {
-        let builder = PathBuilder(self)
-        self._method = builder[keyPath: key]
-        return self
-    }
-
-    fileprivate func set(path: String) -> Self {
-        self._path = path
-        return self
-    }
-
-    // MARK: HeadersBuilder
-
-    public var header: HeadersBuilder { HeadersBuilder(self) }
-
-    fileprivate func set(header: String, _ v: String) -> Self {
-        self._headers[header] = v
-        return self
-    }
-
-    public subscript(dynamicMember key: KeyPath<HeaderKey, String>) -> HeadersBuilderExistingKey {
-        let headerKey = HeaderKey(stringLiteral: "")[keyPath: key]
-        return .init(self, key: headerKey)
-    }
-
-    // MARK: BodyBuilder
-
-    public var query: ObjBuilder {
-        if _method != .get {
-            // in practice however, it's a bit different
-            Log.warn("query is traditionally disallowed on anything but a `get` request")
-        }
-        return ObjBuilder(self, kp: \._query)
-    }
-
-    public var body: ObjBuilder {
-        ObjBuilder(self, kp: \._body)
-    }
-
-    // MARK: Handlers
-
-    /// idk if I like this syntax or the other
-    public var on: OnBuilder { OnBuilder(self) }
-
-    // MARK: Middleware
-
-    private var middlewares: [Middleware] = []
-
-    // TODO: sort by priority Int?
-    public enum MiddlewareInsert {
-        case front
-        case back
-    }
-
-    public func middleware(_ middleware: Middleware, to: MiddlewareInsert = .back) -> Self {
-        switch to {
-        case .front:
-            self.middlewares.insert(middleware, at: 0)
-        case .back:
-            self.middlewares.append(middleware)
-        }
-        return self
-    }
-
-    public func drop(middleware matching: (Middleware) -> Bool) -> Self {
-        middlewares.removeAll(where: matching)
-        return self
-    }
-    
-    private var _beforeOps: [(inout URLRequest) -> Void] = []
-    public func beforeSend(_ op: @escaping () -> Void) -> Self {
-        beforeSend({ _ in op() })
-    }
-    
-    public func beforeSend(_ op: @escaping (inout URLRequest) -> Void) -> Self {
-        _beforeOps.append(op)
-        return self
-    }
-    
-    public func client(_ client: Client) -> Self {
-        self.networkClient = client
-        return self
-    }
-
     // MARK: Send
-
-    // TODO: use a beforeRun or middleware or sth
-    public var _logging = false
-
+    
     public func send() {
-        if _logging { Log.info("requesting: \(expandedUrl)") }
-
-        let queue = self.middlewares.reversed().reduce(onComplete) { (result, next) in
-            return { res in
-                next.handle(res, next: result)
-            }
-        } as NetworkCompletion
-
+        let responderChain = makeResponderChain()
         guard Network.isAvailable else {
-            queue(.failure(NSError.noNetwork))
+            responderChain(.failure(NSError.noNetwork))
             return
         }
 
         do {
             var request = try makeRequest()
-            _beforeOps.forEach { op in op(&request) }
-            networkClient.send(request, completion: queue)
+            beforeSends.forEach { op in op(&request) }
+            networkClient.send(request, completion: responderChain)
         } catch {
-            queue(.failure(error))
+            responderChain(.failure(error))
         }
     }
-    
-    public var networkClient: Client = URLSession(configuration: .default)
 
     public func makeRequest() throws -> URLRequest {
         guard let url = URL(string: expandedUrl) else {
@@ -229,6 +243,7 @@ public class Base {
         return url + "?" + makeQueryString(parameters: query)
     }
 
+    // MARK: Query
 
     enum QueryArrayEncodingStrategy {
         case commaSeparated, multiKeyed
@@ -285,39 +300,37 @@ public class Base {
         ) ?? query
     }
 
+    // MARK: Responder Chain
+    
     private(set) var done = false
     private func onComplete(_ result: Result<NetworkResponse, Error>) {
         done = true
     }
-
-    /// looks a little funny, but enables logging
-    var logging: Self {
-        _logging = true
-        let path = self._path.withTrailingSlash
-        return on.result { result in
-            switch result {
-            case .success(let resp):
-                Log.info("request.succeeded: \(path)" + "\n\(resp)")
-            case .failure(let err):
-                Log.error("request.failed: \(path), error: \(err)")
+    
+    /// combines all of the middleware into a single closure chain
+    public func makeResponderChain() -> NetworkCompletion {
+        self.middlewares.reversed().reduce(onComplete) { (result, next) in
+            return { res in
+                next.handle(res, next: result)
             }
-        } as! Self
+        } as NetworkCompletion
     }
+    
 }
 
 // MARK: ObjBuilder
 
 @dynamicCallable
-public class ObjBuilder {
-    public let base: Base
+public class ObjBuilder<Wrapped: BaseWrapper> {
+    public let base: Wrapped
     public let kp: ReferenceWritableKeyPath<Base, JSON?>
     
-    fileprivate init(_ base: Base, kp: ReferenceWritableKeyPath<Base, JSON?>) {
-        self.base = base
+    fileprivate init(_ backing: Wrapped, kp: ReferenceWritableKeyPath<Base, JSON?>) {
+        self.base = backing
         self.kp = kp
     }
-
-    public func dynamicallyCall<T: Encodable>(withArguments args: [T]) -> Base {
+    
+    public func dynamicallyCall<T: Encodable>(withArguments args: [T]) -> Wrapped {
         let body: JSON
         if args.isEmpty {
             body = [:]
@@ -326,13 +339,13 @@ public class ObjBuilder {
         } else {
             body = try! args.convert()
         }
-        base[keyPath: kp] = body
+        base.wrapped[keyPath: kp] = body
         return base
     }
 
-    public func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Any>) -> Base {
+    public func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Any>) -> Wrapped {
         let body = JSON(args)
-        base[keyPath: kp] = body
+        base.wrapped[keyPath: kp] = body
         return base
     }
 }
@@ -341,22 +354,22 @@ public class ObjBuilder {
 
 @dynamicCallable
 @dynamicMemberLookup
-public class PathBuilder {
+public class PathBuilder<Wrapper: BaseWrapper> {
     public var get: HTTPMethod = .get
     public var post: HTTPMethod = .post
     public var put: HTTPMethod = .put
     public var patch: HTTPMethod = .patch
     public var delete: HTTPMethod = .delete
 
-    public let base: Base
+    public let base: Wrapper
     private let startingPath: String?
 
-    fileprivate init(_ base: Base, startingPath: String? = nil) {
+    fileprivate init(_ base: Wrapper, startingPath: String? = nil) {
         self.base = base
         self.startingPath = startingPath
     }
 
-    public func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Any>) -> Base {
+    public func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Any>) -> Wrapper {
         var updated: String = ""
         if let starting = startingPath {
             updated = starting
@@ -377,12 +390,136 @@ public class PathBuilder {
             updated.replaceFirstOccurence(of: wrapped, with: replacement)
         }
 
-        return base.set(path: updated)
+        base.wrapped._path = updated
+        return base
     }
 
     /// sometimes we do like `.get("path")`, sometimes we just do like `get.on(success:)`
-    public subscript<T>(dynamicMember key: KeyPath<Base, T>) -> T {
+    public subscript<T>(dynamicMember key: KeyPath<BaseWrapper, T>) -> T {
         base[keyPath: key]
+    }
+}
+
+// MARK: Handler Builder
+
+public struct OnBuilder<Wrapped: BaseWrapper, D: Decodable> {
+    public let base: Wrapped
+
+    init(_ base: Wrapped) {
+        self.base = base
+    }
+
+    public func success(_ success: @escaping () -> Void) -> Wrapped {
+        base.middleware(BasicHandler(onSuccess: success))
+    }
+
+    public func success(_ success: @escaping (D) -> Void) -> Wrapped {
+        base.middleware(BasicHandler(onSuccess: success))
+    }
+
+    public func error(_ error: @escaping () -> Void) -> Wrapped {
+        base.middleware(BasicHandler(onError: { _ in error() }))
+    }
+
+    public func error(_ error: @escaping (Error) -> Void) -> Wrapped {
+        base.middleware(BasicHandler(onError: error))
+    }
+
+    public func either(_ run: @escaping () -> Void) -> Wrapped {
+        base.middleware(BasicHandler(basic: { _ in run() }))
+    }
+
+    public func either(_ runner: @escaping (Result<D, Error>) -> Void) -> Wrapped {
+        base.middleware(BasicHandler(basic: { $0.map(to: runner) }))
+    }
+
+    public func result(_ result: @escaping (Result<NetworkResponse, Error>) -> Void) -> Wrapped {
+        base.middleware(BasicHandler(basic: result))
+    }
+}
+
+/// carries an inherent type
+@dynamicMemberLookup
+public struct TypedBuilder<D: Decodable> {
+    public let base: Base
+
+    init(_ base: Base) {
+        self.base = base
+    }
+
+    // is this needed?
+    public var detyped: Base { base }
+}
+
+extension BaseWrapper {
+    public func typed<D: Decodable>(as: D.Type = D.self) -> TypedBuilder<D> {
+        .init(wrapped)
+    }
+}
+
+// MARK: Headers Builder
+
+public final class HeadersBuilderExistingKey<Wrapper: BaseWrapper> {
+    public let key: String
+    private let base: Wrapper
+
+    fileprivate init(_ base: Wrapper, key: String) {
+        self.base = base
+        self.key = key
+    }
+    
+    public func callAsFunction(_ val: String) -> Wrapper {
+        base.wrapped._headers[key] = val
+        return base
+    }
+}
+
+@dynamicMemberLookup
+public final class HeadersBuilder<Wrapper: BaseWrapper> {
+    public let base: Wrapper
+
+    fileprivate init(_ base: Wrapper) {
+        self.base = base
+    }
+
+    public func callAsFunction(_ key: String, _ val: String) -> Wrapper {
+        base.wrapped._headers[key] = val
+        return base
+    }
+
+    public subscript(dynamicMember key: KeyPath<HeaderKey, HeaderKey>) -> HeadersBuilderExistingKey<Wrapper> {
+        let headerKey = HeaderKey(stringLiteral: "")[keyPath: key]
+        return .init(base, key: headerKey.stringValue)
+    }
+}
+
+extension BaseWrapper {
+    public var logErrors: Self {
+        self.on.error { error in
+            Log.error(error)
+        }
+    }
+}
+
+// MARK: String Helpers
+
+extension String {
+    fileprivate var urlcomponents: URLComponents {
+        URLComponents(string: self)!
+    }
+}
+extension URLComponents {
+    fileprivate var baseUrl: String {
+        scheme! + "://" + host!
+    }
+    
+    fileprivate var _query: JSON? {
+        guard let items = queryItems else { return nil }
+        var obj = [String: JSON]()
+        items.forEach { item in
+            obj[item.name] = item.value.flatMap(JSON.string) ?? .null
+        }
+        return .object(obj)
     }
 }
 
@@ -395,168 +532,3 @@ extension String {
         self.replaceSubrange(range, with: with)
     }
 }
-
-// MARK: Handler Builder
-
-open class OnBuilder {
-    public let base: Base
-
-    fileprivate init(_ base: Base) {
-        self.base = base
-    }
-
-    public func success(_ success: @escaping () -> Void) -> Base {
-        base.middleware(BasicHandler(onSuccess: success))
-    }
-
-    public func success(_ success: @escaping (NetworkResponse) -> Void) -> Base {
-        base.middleware(BasicHandler(onSuccess: success))
-    }
-
-    public func success<D: Decodable>(_ success: @escaping (D) -> Void) -> Base {
-        base.middleware(BasicHandler(onSuccess: success))
-    }
-
-    public func error(_ error: @escaping () -> Void) -> Base {
-        base.middleware(BasicHandler(onError: { _ in error() }))
-    }
-
-    public func error(_ error: @escaping (Error) -> Void) -> Base {
-        base.middleware(BasicHandler(onError: error))
-    }
-
-    public func result(_ result: @escaping (Result<NetworkResponse, Error>) -> Void) -> Base {
-        base.middleware(BasicHandler(basic: result))
-    }
-
-    public func either(_ run: @escaping (Result<NetworkResponse, Error>) -> Void) -> Base {
-        result(run)
-    }
-
-    public func either(_ run: @escaping () -> Void) -> Base {
-        base.middleware(BasicHandler(basic: { _ in run() }))
-    }
-}
-
-public struct TypedOnBuilder<D: Decodable> {
-    public let base: Base
-
-    init(_ base: Base) {
-        self.base = base
-    }
-
-    // todo: make `OnBuilder` a function builder w
-    // enums for state and use properties so these can pass through
-
-    public func success(_ success: @escaping (D) -> Void) -> TypedBuilder<D> {
-        base.middleware(BasicHandler(onSuccess: success)).typed()
-    }
-
-    public func success(_ success: @escaping () -> Void) -> TypedBuilder<D> {
-        base.middleware(BasicHandler(onSuccess: success)).typed()
-    }
-
-    public func error(_ error: @escaping () -> Void) -> TypedBuilder<D> {
-        base.middleware(BasicHandler(onError: { _ in error() })).typed()
-    }
-
-    public func error(_ error: @escaping (Error) -> Void) -> TypedBuilder<D> {
-        base.middleware(BasicHandler(onError: error)).typed()
-    }
-
-    public func either(_ runner: @escaping (Result<D, Error>) -> Void) -> TypedBuilder<D> {
-        base.on.result { $0.map(to: runner) }.typed()
-    }
-
-    public func either(_ run: @escaping () -> Void) -> TypedBuilder<D> {
-        base.middleware(BasicHandler(basic: { _ in run() })).typed()
-    }
-
-    public func result(_ result: @escaping (Result<NetworkResponse, Error>) -> Void) -> TypedBuilder<D> {
-        base.on.result(result).typed()
-    }
-}
-
-public struct TypedBuilder<D: Decodable> {
-    public let base: Base
-
-    init(_ base: Base) {
-        self.base = base
-    }
-
-    public var on: TypedOnBuilder<D> { .init(base) }
-
-    public func send() { base.send() }
-
-    // is this needed?
-    public var detyped: Base { base }
-}
-
-extension Base {
-    public func typed<D: Decodable>(as: D.Type = D.self) -> TypedBuilder<D> {
-        .init(self)
-    }
-}
-
-// MARK: Headers Builder
-
-public final class HeadersBuilderExistingKey {
-    public let key: String
-    private let base: Base
-
-    fileprivate init(_ base: Base, key: String) {
-        self.base = base
-        self.key = key
-    }
-
-    public func callAsFunction(_ val: String) -> Base {
-        return base.set(header: key, val)
-    }
-}
-
-@dynamicMemberLookup
-public final class HeadersBuilder {
-    public let base: Base
-
-    fileprivate init(_ base: Base) {
-        self.base = base
-    }
-
-    public func callAsFunction(_ key: String, _ val: String) -> Base {
-        return base.set(header: key, val)
-    }
-
-    public subscript(dynamicMember key: KeyPath<HeaderKey, String>) -> HeadersBuilderExistingKey {
-        let headerKey = HeaderKey(stringLiteral: "")[keyPath: key]
-        return .init(base, key: headerKey)
-    }
-}
-
-extension Base {
-    public var logErrors: Base {
-        on.error { error in
-            Log.error(error)
-        }
-    }
-}
-
-
-//#if canImport(XCTest)
-//import XCTest
-//
-//extension TypedBuilder {
-//    public func testing(on expectation: XCTestExpectation) -> Self {
-//        self.base.testing(on: expectation).typed()
-//    }
-//}
-//
-//extension Base {
-//    public func testing(on expectation: XCTestExpectation) -> Base {
-//        self.on.either(expectation.fulfill)
-//            .on.error { err in
-//                XCTFail("\(err)")
-//            }
-//    }
-//}
-//
-//#endif
