@@ -497,11 +497,11 @@ public class PathBuilder<Wrapper: BaseWrapper> {
     public var delete: HTTPMethod = .delete
 
     public let base: Wrapper
-    private let startingPath: String?
+//    private let startingPath: String?
 
     fileprivate init(_ base: Wrapper, startingPath: String? = nil) {
         self.base = base
-        self.startingPath = startingPath
+//        self.startingPath = startingPath
     }
     
     public func dynamicallyCall(withArguments args: [CustomStringConvertible]) -> Wrapper {
@@ -526,10 +526,7 @@ public class PathBuilder<Wrapper: BaseWrapper> {
     }
     
     public func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Any>) -> Wrapper {
-        var updated: String = ""
-        if let starting = startingPath {
-            updated = starting
-        }
+        var updated = base.wrapped._path
 
         if let arg = args.first, arg.key.isEmpty || arg.key == "path" {
             let arg = args[0]
@@ -543,7 +540,7 @@ public class PathBuilder<Wrapper: BaseWrapper> {
             updated.replaceFirstOccurence(of: wrapped, with: replacement)
         }
 
-        base.wrapped._path = base.wrapped._path.withTrailingSlash + updated
+        base.wrapped._path = updated
         return base
     }
 

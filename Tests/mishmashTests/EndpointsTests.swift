@@ -10,6 +10,7 @@ extension Base {
 extension Endpoint {
     var testGet: Endpoint { "get" }
     var users: Endpoint { "users" }
+    var api: Endpoint { "api/v{version}/" }
 }
 
 class MyAPI {
@@ -21,6 +22,11 @@ class MyAPI {
 class EndpointsTests: XCTestCase {
     func testNotes() {
         Log.warn("should change name? ambiguous w Foundation.Host")
+    }
+    
+    func testVersionReplacement() {
+        let url = Base.httpbin.api(version: 0).expandedUrl
+        XCTAssertEqual(url, "https://httpbin.org/api/v0/")    
     }
     
     func testUrlParts() {
