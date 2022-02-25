@@ -92,6 +92,14 @@ extension RangeReplaceableCollection {
     @inlinable public func filter<T: Equatable>(where kp: KeyPath<Element, T>, not match: T) -> Self {
         filter({ $0[keyPath: kp] != match })
     }
+    
+    @inlinable public func sorted<T: Comparable>(by kp: KeyPath<Element, T>, using comparator: (T, T) -> Bool) -> [Element] {
+        self.sorted { l, r in
+            let lhs = l[keyPath: kp]
+            let rhs = r[keyPath: kp]
+            return comparator(lhs, rhs)
+        }
+    }
 }
 
 extension Array where Element: Identifiable {
@@ -121,6 +129,7 @@ extension Array {
         }
     }
 
+    /// maybe better named `execute(each: \.listener, passing: arg)`
     public func pass<T>(each kp: KeyPath<Element, (T) -> Void>, arg: T) {
         self.forEach { element in
             // can I just map this?
