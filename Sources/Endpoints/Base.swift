@@ -236,8 +236,25 @@ public class Base {
     public init(_ url: String) {
         let comps = url.urlcomponents
         self.baseUrl = comps.baseUrl
-        self._path = comps.path
+        /// allows shorthand a la `somesite.com` to become `https://somesite.com`
+        if url != comps.path {
+            self._path = comps.path
+        }
         self._query = comps._query
+    }
+    
+    /// the other initializer attempts to handle most
+    /// cases gracefully of decoding a user's url
+    /// (adding https, decoding query, etc)
+    ///
+    /// if that is causing issues, this is provided
+    /// as an override, it ignores all potential inference
+    ///
+    /// WARNING: adding paths to a base url with a query
+    /// will append them after,
+    /// ie: foble.com?k=v&abc=123/some/path
+    public init(absoluteBaseUrl: String) {
+        self.baseUrl = absoluteBaseUrl
     }
 
     // MARK: Send
@@ -426,6 +443,8 @@ public class PathBuilder<Wrapper: BaseWrapper> {
     }
     
     public func dynamicallyCall(withArguments args: [CustomStringConvertible]) -> Wrapper {
+        guard !args.isEmpty else { return base }
+        
         let components = args.map(\.description)
         let enforceTrailingSlash = components.last == "/"
         let addition = components.dropLast(enforceTrailingSlash ? 1 : 0)
@@ -592,7 +611,7 @@ extension String {
 }
 extension URLComponents {
     fileprivate var baseUrl: String {
-        scheme! + "://" + host!
+        (scheme ?? "https") + "://" + (host ?? path)
     }
     
     fileprivate var _query: JSON? {

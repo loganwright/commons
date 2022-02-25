@@ -4,7 +4,7 @@ import XCTest
 @testable import Endpoints
 
 extension Base {
-    static var httpbin: Base { Base("https://httpbin.org") }
+    static var httpbin: Base { Base("httpbin.org") }
 }
 
 extension Endpoint {
@@ -28,8 +28,8 @@ class EndpointsTests: XCTestCase {
     func testUrlId() {
         let base = Base("https://someurl.com/")
             .users
-            .get as Base
-        
+            .get()
+            
         XCTAssertEqual(base.expandedUrl, "https://someurl.com/users")
         
         let ided = base.id("1235/")
@@ -37,12 +37,16 @@ class EndpointsTests: XCTestCase {
         
         
         let direct = Base("https://someurl.com/")
-            .users(1235, "/") as Base
+            .users(1235, "/")
         XCTAssertEqual(direct.expandedUrl, "https://someurl.com/users/1235/")
         
         let multi = Base("https://someurl.com/")
-            .get("users", 1235, "/") as Base
+            .get("users", 1235, "/")
         XCTAssertEqual(multi.expandedUrl, "https://someurl.com/users/1235/")
+    }
+    
+    func testSimple() {
+        XCTAssertEqual(Base("someurl.com").expandedUrl, "https://someurl.com")
     }
     
     func testPathOptions() {
