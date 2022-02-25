@@ -35,7 +35,7 @@ public final class TrafficObserver<C: Client>: ObservableObject, Client {
 }
 
 extension TrafficObserver where C == URLSession {
-    public static let `defaultObserver` = TrafficObserver(URLSession(configuration: .default))
+    public static let `default` = TrafficObserver(URLSession(configuration: .default))
 }
 
 extension Base {

@@ -34,14 +34,20 @@ extension TypedBuilder: BaseWrapper {
 }
 
 extension BaseWrapper {
+    
     // MARK: Base Accessors
     
-    subscript<T>(dynamicMember kp: KeyPath<Base, T>) -> T {
+    public subscript<T>(dynamicMember kp: KeyPath<Base, T>) -> T {
         wrapped[keyPath: kp]
     }
 
-    subscript<T>(dynamicMember kp: WritableKeyPath<Base, T>) -> T {
-        wrapped[keyPath: kp]
+    public subscript<T>(dynamicMember kp: ReferenceWritableKeyPath<Base, T>) -> T {
+        get {
+            wrapped[keyPath: kp]
+        }
+        set {
+            wrapped[keyPath: kp] = newValue
+        }
     }
     
     // MARK: Path Building
@@ -49,7 +55,7 @@ extension BaseWrapper {
     /// add keys to EP in an extension to support
     public subscript(dynamicMember key: KeyPath<Endpoint, Endpoint>) -> PathBuilder<Self> {
         let ep = Endpoint("")[keyPath: key]
-        wrapped._path += ep.stringValue
+        wrapped._path = wrapped._path.withTrailingSlash + ep.stringValue
         return PathBuilder(self, startingPath: wrapped._path)
 //        return builder
     }
@@ -57,7 +63,7 @@ extension BaseWrapper {
     /// for better building
     public subscript(dynamicMember key: KeyPath<Endpoint, Endpoint>) -> Self {
         let ep = Endpoint("")[keyPath: key]
-        wrapped._path += ep.stringValue
+        wrapped._path = wrapped._path.withTrailingSlash + ep.stringValue
         return self
     }
     
@@ -70,6 +76,17 @@ extension BaseWrapper {
     /// get, post, put, patch, delete
     public subscript(dynamicMember key: KeyPath<HTTPMethods, HTTPMethod>) -> Self {
         wrapped._method = HTTPMethods.group[keyPath: key]
+        return self
+    }
+    
+    /// appends the contents as a path component
+    ///
+    public func id(_ id: CustomStringConvertible) -> Self {
+        path(id)
+    }
+    
+    public func path(_ id: CustomStringConvertible) -> Self {
+        wrapped._path = wrapped._path.withTrailingSlash + id.description
         return self
     }
     
@@ -105,22 +122,21 @@ extension BaseWrapper {
 
 // MARK: Middlewares
 
-public enum MiddlewareInsert {
-    case front
-    case back
-}
-
 extension BaseWrapper {
-    public func middleware(_ middleware: Middleware, to: MiddlewareInsert = .back) -> Self {
-        switch to {
-        case .front:
+    /// insert a middleware, these will run in order added
+    /// calling `front: true` will insert at front of queue
+    /// however, if a subsequent call also calls `front: true`
+    /// that will be inserted to the front
+    public func middleware(_ middleware: Middleware, front: Bool = false) -> Self {
+        if front {
             wrapped.middlewares.insert(middleware, at: 0)
-        case .back:
+        } else {
             wrapped.middlewares.append(middleware)
         }
         return self
     }
 
+    /// remove a middleware
     public func drop(middleware matching: (Middleware) -> Bool) -> Self {
         wrapped.middlewares.removeAll(where: matching)
         return self
@@ -130,15 +146,20 @@ extension BaseWrapper {
 // MARK: Before Hooks
 
 extension BaseWrapper {
+    /// sets an operation to run before sending
     public func beforeSend(_ op: @escaping () -> Void) -> Self {
         beforeSend({ _ in op() })
     }
     
+    /// sets an operation allowing request modification prior to a send
     public func beforeSend(_ op: @escaping (inout URLRequest) -> Void) -> Self {
         wrapped.beforeSends.append(op)
         return self
     }
+}
     
+extension BaseWrapper {
+    /// sets a new client to be used
     public func client(_ client: Client) -> Self {
         wrapped.networkClient = client
         return self
@@ -229,11 +250,13 @@ public class Base {
     }
 
     public var expandedUrl: String {
-        var url = self.baseUrl.withTrailingSlash
-        if _path.hasPrefix("/") {
-            url += _path.dropFirst()
+        let url: String
+        if _path.isEmpty {
+            url = baseUrl
+        } else if _path.hasPrefix("/") {
+            url = baseUrl.withTrailingSlash + _path.dropFirst()
         } else {
-            url += _path
+            url = baseUrl.withTrailingSlash + _path
         }
         
         if _method != .get, _query != nil {
@@ -390,7 +413,7 @@ public class PathBuilder<Wrapper: BaseWrapper> {
             updated.replaceFirstOccurence(of: wrapped, with: replacement)
         }
 
-        base.wrapped._path = updated
+        base.wrapped._path = base.wrapped._path.withTrailingSlash + updated
         return base
     }
 
@@ -468,8 +491,8 @@ public final class HeadersBuilderExistingKey<Wrapper: BaseWrapper> {
         self.key = key
     }
     
-    public func callAsFunction(_ val: String) -> Wrapper {
-        base.wrapped._headers[key] = val
+    public func callAsFunction(_ val: CustomStringConvertible) -> Wrapper {
+        base.wrapped._headers[key] = val.description
         return base
     }
 }
@@ -482,8 +505,8 @@ public final class HeadersBuilder<Wrapper: BaseWrapper> {
         self.base = base
     }
 
-    public func callAsFunction(_ key: String, _ val: String) -> Wrapper {
-        base.wrapped._headers[key] = val
+    public func callAsFunction(_ key: String, _ val: CustomStringConvertible) -> Wrapper {
+        base.wrapped._headers[key] = val.description
         return base
     }
 

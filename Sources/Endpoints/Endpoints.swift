@@ -8,4 +8,10 @@ public struct Endpoint: ExpressibleByStringLiteral {
     public init(stringLiteral s: String) {
         self.stringValue = s
     }
+    
+    public init(_ s: String) {
+        self.stringValue = s
+    }
 }
+
+

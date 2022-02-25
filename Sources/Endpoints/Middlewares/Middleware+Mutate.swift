@@ -51,6 +51,31 @@ extension ModifyBody {
     }
 }
 
+extension BaseWrapper {
+    
+    /// when the desired data is nested inside of a bigger response
+    /// this can be used to extract it
+    /// ie:
+    ///
+    ///     {
+    ///         "children": [
+    ///         ...
+    ///
+    /// would access like:
+    ///
+    ///     Host.myapi
+    ///         .extracting(dataPath: \.children)
+    ///         .on.success { children in
+    ///             // extract children here
+    ///
+    /// - Parameters:
+    ///   - kp: the path pointing to the data
+    ///   - front: whether or not the extraction should go to the front of the responder chain
+    public func extracting(dataPath kp: KeyPath<JSON, JSON?>, front: Bool = true) -> Self {
+        middleware(ModifyBody(extracting: kp), front: front)
+    }
+}
+
 // MARK: Chain
 
 /// I don't know how to name this.
@@ -69,12 +94,9 @@ public struct ChainDependency<D: Decodable>: Middleware {
     public func handle(_ result: Result<NetworkResponse, Error>, next: @escaping (Result<NetworkResponse, Error>) -> Void) {
         do {
             let resp = try result.unwrap(as: D.self)
-            // still needs background?
-//            background {
-                map(resp)
-                    .on.result(next)
-                    .send()
-//            }
+            map(resp)
+                .on.result(next)
+                .send()
         } catch {
             next(.failure(error))
         }

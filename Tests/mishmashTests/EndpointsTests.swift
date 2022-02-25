@@ -9,6 +9,7 @@ extension Base {
 
 extension Endpoint {
     var testGet: Endpoint { "get" }
+    var users: Endpoint { "users" }
 }
 
 class EndpointsTests: XCTestCase {
@@ -22,6 +23,17 @@ class EndpointsTests: XCTestCase {
         XCTAssertEqual(base.baseUrl, "https://api-test.padcaster-core.com")
         XCTAssertEqual(base._path, "/api/v0/files/commit/")
         XCTAssert(base._query?.args?.string?.isEmpty == false)
+    }
+    
+    func testUrlId() {
+        let base = Base("https://someurl.com/")
+            .users
+            .get as Base
+        
+        XCTAssertEqual(base.expandedUrl, "https://someurl.com/users")
+        
+        let ided = base.id("1235/")
+        XCTAssertEqual(ided.expandedUrl, "https://someurl.com/users/1235/")
     }
 
     func testOrdered() throws {
@@ -40,10 +52,16 @@ class EndpointsTests: XCTestCase {
         Base.httpbin
             .get
             .testGet
+            // all identical
+            .h("Content-Type", "application/json")
             .header("Content-Type", "application/json")
+            .h.contentType("application/json")
+            .header.contentType("application/json")
+            .contentType("application/json")
+            .header("X-App-Addition-Version", 1.02)
             .header("Accept", "application/json")
             .query(name: "flia", age: 234)
-            .client(TrafficObserver.defaultObserver)
+            .client(TrafficObserver.default)
             .on.success { json in
                 XCTAssertEqual(json.args?.name?.string, "flia")
                 XCTAssertEqual(json.args?.age?.int, 234)
@@ -53,17 +71,20 @@ class EndpointsTests: XCTestCase {
     }
 
     func testPost(_ group: XCTestExpectation) {
+        struct Person: Codable {
+            let name: String
+            let age: Int
+        }
         Base.httpbin.post("post")
-            .contentType("application/json")
-            .header("Content-Type", "application/json")
             .h.contentType("application/type")
             .h.accept("application/json")
             .body(name: "flia", age: 234)
-            .on.success { results in
-                /// the json is also nested under json lol, the httpbin api makes funny calls
-                let json = results["json"]
-                XCTAssertEqual(json?.name?.string, "flia")
-                XCTAssertEqual(json?.age?.int, 234)
+            /// the data is nested
+            .extracting(dataPath: \.json)
+            .typed(as: Person.self)
+            .on.success { flia in
+                XCTAssertEqual(flia.name, "flia")
+                XCTAssertEqual(flia.age, 234)
             }
             .testing(on: group)
             .send()
@@ -72,8 +93,8 @@ class EndpointsTests: XCTestCase {
     func testError(_ group: XCTestExpectation) {
         Base.httpbin
             .get("status/{code}", code: 345)
-            .h.contentType("application/json")
-            .h.accept("application/json")
+            .contentType("application/json")
+            .accept("application/json")
             .on.success { result in
                 XCTFail("should fail w error code")
             }
@@ -107,14 +128,13 @@ class EndpointsTests: XCTestCase {
         let age: Int
     }
     func testSerialize(_ group: XCTestExpectation) {
-        
         Base("https://httpbin.org")
             .post(path: "post")
             .contentType("application/json")
             .accept("application/json")
             .header("Custom", "more")
             .body(id: "asfdlkjdsf", name: "flia", age: 234)
-            .middleware(ModifyBody(extracting: \.json), to: .front)
+            .middleware(ModifyBody(extracting: \.json), front: true)
             .typed(as: BasicUser.self)
             .on.error { error in
                 Log.error(error)
