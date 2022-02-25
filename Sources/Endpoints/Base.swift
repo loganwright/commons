@@ -78,7 +78,7 @@ extension BaseWrapper {
     public subscript(dynamicMember key: KeyPath<Endpoint, Endpoint>) -> PathBuilder<Self> {
         let ep = Endpoint("")[keyPath: key]
         wrapped._path = wrapped._path.withTrailingSlash + ep.stringValue
-        return PathBuilder(self, startingPath: wrapped._path)
+        return PathBuilder(self)
     }
 
     /// for better building
@@ -91,7 +91,7 @@ extension BaseWrapper {
     /// get, post, put, patch, delete
     public subscript(dynamicMember key: KeyPath<HTTPMethods, HTTPMethod>) -> PathBuilder<Self> {
         wrapped._method = HTTPMethods.group[keyPath: key]
-        return PathBuilder(self, startingPath: wrapped._path)
+        return PathBuilder(self)
     }
 
     /// get, post, put, patch, delete
@@ -497,11 +497,9 @@ public class PathBuilder<Wrapper: BaseWrapper> {
     public var delete: HTTPMethod = .delete
 
     public let base: Wrapper
-//    private let startingPath: String?
 
-    fileprivate init(_ base: Wrapper, startingPath: String? = nil) {
+    fileprivate init(_ base: Wrapper) {
         self.base = base
-//        self.startingPath = startingPath
     }
     
     public func dynamicallyCall(withArguments args: [CustomStringConvertible]) -> Wrapper {
@@ -512,16 +510,16 @@ public class PathBuilder<Wrapper: BaseWrapper> {
         let addition = components.dropLast(enforceTrailingSlash ? 1 : 0)
             .joined(separator: "/")
         
-        let update: String
+        let component: String
         if addition == "/" {
-            update = ""
+            component = ""
         } else if enforceTrailingSlash {
-            update = addition.withTrailingSlash
+            component = addition.withTrailingSlash
         } else {
-            update = addition
+            component = addition
         }
         
-        base.wrapped._path = base.wrapped._path.withTrailingSlash + update
+        base.wrapped._path = base.wrapped._path.withTrailingSlash + component
         return base
     }
     
