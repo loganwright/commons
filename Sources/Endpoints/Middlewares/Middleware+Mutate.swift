@@ -76,6 +76,23 @@ extension BaseWrapper {
     }
 }
 
+extension TypedBaseWrapper {
+    ///     Host.myapi
+    ///         .extracting(dataPath: \.children)
+    ///         .on.success { children in
+    ///             // extract children here
+    ///
+    /// - Parameters:
+    ///   - kp: the path pointing to the data
+    ///   - front: whether or not the extraction should go to the front of the responder chain
+    public func extracting<E: Encodable>(dataPath kp: KeyPath<ResponseType, E?>, front: Bool = true) -> Self {
+        middleware(ModifyBody({ input in
+            let resp = try input?.convert() as? ResponseType
+            return try resp?[keyPath: kp]?.convert()
+        }), front: front)
+    }
+}
+
 // MARK: Chain
 
 /// I don't know how to name this.

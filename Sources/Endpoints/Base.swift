@@ -33,6 +33,14 @@ extension TypedBuilder: BaseWrapper {
     public var wrapped: Base { base }
 }
 
+protocol TypedBaseWrapper: BaseWrapper {
+    associatedtype ResponseType: Decodable
+}
+
+extension TypedBuilder: TypedBaseWrapper {
+    public typealias ResponseType = D
+}
+
 extension BaseWrapper {
     
     // MARK: Base Accessors
