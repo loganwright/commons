@@ -12,6 +12,12 @@ extension Endpoint {
     var users: Endpoint { "users" }
 }
 
+class MyAPI {
+    var users: some TypedBaseWrapper {
+        Base.httpbin.users.typed(as: EndpointsTests.Person.self)
+    }
+}
+
 class EndpointsTests: XCTestCase {
     func testNotes() {
         Log.warn("should change name? ambiguous w Foundation.Host")
@@ -49,20 +55,58 @@ class EndpointsTests: XCTestCase {
         XCTAssertEqual(Base("someurl.com").expandedUrl, "https://someurl.com")
     }
     
-    func testPathOptions() {
-        let a = Base.httpbin.get("users", 1235, "/")
-        let b = Base.httpbin.get.users(1235, "/")
-        let c = Base.httpbin.get.users.id(1235, enforceTrailingSlash: true)
-        let d = Base.httpbin.get.users.id("1235/")
-        let e = Base.httpbin.get.users.id(1235).path("/")
+    func testPathAPIOptions() {
+        let a = Base.httpbin.post("users", 1235, "/")
+        let b = Base.httpbin.post.users(1235, "/")
+        let c = Base.httpbin.post.users.id(1235, enforceTrailingSlash: true)
+        let d = Base.httpbin.post.users.id("1235/")
+        let e = Base.httpbin.post.users.id(1235).path("/")
+        let f = Base.httpbin.post(path: "users/{id}/", id: 1235)
+        let g = Base.httpbin.post(path: "{multiple}/{values}/", multiple: "users", values: 1235)
+        let all = [
+            a, b, c, d, e, f, g
+        ]
+        XCTAssertEqual(all.map(\.expandedUrl).set.count, 1)
+    }
+    
+    struct Person: Codable, Equatable, Hashable {
+        let name: String
+        let age: Int
+    }
+    
+    func testQueryAPIOptions() {
+        let a = Base.httpbin.get.query(name: "flia", age: 234)
+        let b = Base.httpbin.get.query.name("flia").age(234) as Base
+        let flia = Person(name: "flia", age: 234)
+        let c = Base.httpbin.get.query(flia)
+        let d = Base.httpbin.get.q(name: "flia", age: 234)
+        let e = Base.httpbin.get.q.name("flia").q.age(234) as Base
         let all = [
             a, b, c, d, e
         ]
-        XCTAssertEqual(all.map(\.expandedUrl).set.count, 1)
+        let final = all.map(\.expandedUrl).set.first
+        XCTAssertNotNil(final)
+        XCTAssertEqual(final, "https://httpbin.org?age=234&name=flia")
+    }
+    
+    func testBodyAPIOptions() throws {
+        let a = Base.httpbin.post.body(name: "flia", age: 234)
+        let b = Base.httpbin.post.body.name("flia").age(234) as Base
+        let flia = Person(name: "flia", age: 234)
+        let c = Base.httpbin.post.body(flia)
+        let d = Base.httpbin.post.b(name: "flia", age: 234)
+        let e = Base.httpbin.post.b.name("flia").q.age(234) as Base
+        let all = [
+            a, b, c, d, e
+        ]
+        let final = try all.map { try $0.makeRequest() } .compactMap(\.httpBody) .set .first
+        XCTAssertNotNil(final)
+        XCTAssertEqual(try final?.decode(), flia)
     }
 
     func testOrdered() throws {
         let orderedTestCases = [
+            ("testBasicManual", testBasicManual),
             ("testGet", testGet),
             ("testPost", testPost),
             ("testError", testError),
@@ -73,6 +117,16 @@ class EndpointsTests: XCTestCase {
         orderedTestCases.forEach(execute)
     }
 
+    func testBasicManual(_ group: XCTestExpectation) {
+        Base("httpbin.org")
+            .h.contentType("application/json")
+            .h.accept("application/json")
+            .h("X-App-Custom", "customval")
+            .q.admin(true)
+            .testing(on: group)
+            .send()
+    }
+    
     func testGet(_ group: XCTestExpectation) {
         Base.httpbin
             .get
@@ -85,7 +139,7 @@ class EndpointsTests: XCTestCase {
             .contentType("application/json")
             .header("X-App-Addition-Version", 1.02)
             .header("Accept", "application/json")
-            .query(name: "flia", age: 234)
+            .q(name: "flia", age: 234)
             .client(TrafficObserver.default)
             .on.success { json in
                 XCTAssertEqual(json.args?.name?.string, "flia")
@@ -96,10 +150,6 @@ class EndpointsTests: XCTestCase {
     }
 
     func testPost(_ group: XCTestExpectation) {
-        struct Person: Codable {
-            let name: String
-            let age: Int
-        }
         Base.httpbin.post("post")
             .h.contentType("application/type")
             .h.accept("application/json")

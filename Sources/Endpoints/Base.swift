@@ -131,6 +131,9 @@ extension BaseWrapper {
     
     // MARK: Body/Query
     
+    /// shorthand for query building
+    public var q: ObjBuilder<Self> { query }
+    
     /// used to build the query of the request
     /// dynamically, ie: `.query(key: val, key: 2)`
     public var query: ObjBuilder<Self> {
@@ -140,6 +143,9 @@ extension BaseWrapper {
         }
         return ObjBuilder(self, kp: \.wrapped._query)
     }
+    
+    /// shorthand for body building
+    public var b: ObjBuilder<Self> { query }
 
     /// used to build the body of the request
     /// dynamically, ie: `.body(dynamic: "keys here")`
@@ -389,14 +395,43 @@ public class Base {
 
 // MARK: ObjBuilder
 
+#warning("implement dynamic lookup on obj builder")
+///
+///so you can do:
+///
+///     Base()
+///        .get("foo")
+///        .q.key(value)
+///        .q(key: value)
+///        .q.ifTypedFillHereOrAlwaysDynamic
+
+@dynamicMemberLookup
 @dynamicCallable
 public class ObjBuilder<Wrapped: BaseWrapper> {
     public let base: Wrapped
+    /// this has nothing to do with object keys
+    /// it is a back reference to base so that
+    /// the object can properly be set to body,
+    /// or query, or other..
     public let kp: ReferenceWritableKeyPath<Base, JSON?>
     
     fileprivate init(_ backing: Wrapped, kp: ReferenceWritableKeyPath<Base, JSON?>) {
         self.base = backing
         self.kp = kp
+    }
+    
+    public subscript(dynamicMember key: String) -> (CustomStringConvertible) -> Wrapped {
+        return { value in
+            self.dynamicallyCall(withKeywordArguments: .init(dictionaryLiteral: (key, value)))
+        }
+    }
+    
+    public subscript(dynamicMember key: String) -> (CustomStringConvertible) -> ObjBuilder {
+        let kp = self.kp
+        return { value in
+            let next = self.dynamicallyCall(withKeywordArguments: .init(dictionaryLiteral: (key, value)))
+            return ObjBuilder(next, kp: kp)
+        }
     }
     
     public func dynamicallyCall<T: Encodable>(withArguments args: [T]) -> Wrapped {
@@ -408,14 +443,41 @@ public class ObjBuilder<Wrapped: BaseWrapper> {
         } else {
             body = try! args.convert()
         }
-        base.wrapped[keyPath: kp] = body
+        if let existing = base.wrapped[keyPath: kp] {
+            base.wrapped[keyPath: kp] = existing.merged(with: body)
+        } else {
+            base.wrapped[keyPath: kp] = body
+        }
         return base
     }
 
     public func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Any>) -> Wrapped {
         let body = JSON(args)
-        base.wrapped[keyPath: kp] = body
+        if let existing = base.wrapped[keyPath: kp] {
+            base.wrapped[keyPath: kp] = existing.merged(with: body)
+        } else {
+            base.wrapped[keyPath: kp] = body
+        }
         return base
+    }
+}
+
+extension JSON {
+    func merged(with js: JSON) -> JSON? {
+        switch (self, js) {
+        case (.object(var l), .object(let r)):
+            r.forEach { k, v in
+                l[k] = v
+            }
+            return .object(l)
+        case (.array(let l), .array(let r)):
+            return .array(l + r)
+        case (.string(let l), .string(let r)):
+            return .string(l + r)
+        default:
+            Log.warn("unable to merge json object")
+            return nil
+        }
     }
 }
 

@@ -89,7 +89,8 @@ extension Encodable  {
                 }
             }
         default:
-            return try self.convert()
+            /// encodable objects use encoded data as interchange
+            return try self.encode().decode()
         }
     }
 }
@@ -173,9 +174,7 @@ extension JSON {
         case .array(let v):
             return v
         case .string(let str):
-            return catching {
-                try str.data.decode()
-            }
+            return try? str.data.decode()
         default:
             return nil
         }
