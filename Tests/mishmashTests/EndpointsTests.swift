@@ -44,6 +44,18 @@ class EndpointsTests: XCTestCase {
             .get("users", 1235, "/") as Base
         XCTAssertEqual(multi.expandedUrl, "https://someurl.com/users/1235/")
     }
+    
+    func testPathOptions() {
+        let a = Base.httpbin.get("users", 1235, "/")
+        let b = Base.httpbin.get.users(1235, "/")
+        let c = Base.httpbin.get.users.id(1235, enforceTrailingSlash: true)
+        let d = Base.httpbin.get.users.id("1235/")
+        let e = Base.httpbin.get.users.id(1235).path("/")
+        let all = [
+            a, b, c, d, e
+        ]
+        XCTAssertEqual(all.map(\.expandedUrl).set.count, 1)
+    }
 
     func testOrdered() throws {
         let orderedTestCases = [

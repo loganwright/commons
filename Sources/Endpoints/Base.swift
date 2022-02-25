@@ -108,9 +108,11 @@ extension BaseWrapper {
     
     public func path(_ id: CustomStringConvertible, enforceTrailingSlash: Bool = false) -> Self {
         let component: String
-        if enforceTrailingSlash {
+        if id.description == "/" {
+            component = ""
+        } else if enforceTrailingSlash {
             component = id.description.withTrailingSlash
-        } else {
+        }  else {
             component = id.description
         }
         wrapped._path = wrapped._path.withTrailingSlash + component
@@ -430,7 +432,9 @@ public class PathBuilder<Wrapper: BaseWrapper> {
             .joined(separator: "/")
         
         let update: String
-        if enforceTrailingSlash {
+        if addition == "/" {
+            update = ""
+        } else if enforceTrailingSlash {
             update = addition.withTrailingSlash
         } else {
             update = addition
