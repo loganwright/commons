@@ -81,12 +81,18 @@ extension BaseWrapper {
     
     /// appends the contents as a path component
     ///
-    public func id(_ id: CustomStringConvertible) -> Self {
-        path(id)
+    public func id(_ id: CustomStringConvertible, enforceTrailingSlash: Bool = false) -> Self {
+        path(id, enforceTrailingSlash: enforceTrailingSlash)
     }
     
-    public func path(_ id: CustomStringConvertible) -> Self {
-        wrapped._path = wrapped._path.withTrailingSlash + id.description
+    public func path(_ id: CustomStringConvertible, enforceTrailingSlash: Bool = false) -> Self {
+        let component: String
+        if enforceTrailingSlash {
+            component = id.description.withTrailingSlash
+        } else {
+            component = id.description
+        }
+        wrapped._path = wrapped._path.withTrailingSlash + component
         return self
     }
     
@@ -375,6 +381,10 @@ public class ObjBuilder<Wrapped: BaseWrapper> {
 
 // MARK: Path Builder
 
+extension Array where Element == String {
+    
+}
+
 @dynamicCallable
 @dynamicMemberLookup
 public class PathBuilder<Wrapper: BaseWrapper> {
@@ -391,7 +401,24 @@ public class PathBuilder<Wrapper: BaseWrapper> {
         self.base = base
         self.startingPath = startingPath
     }
-
+    
+    public func dynamicallyCall(withArguments args: [CustomStringConvertible]) -> Wrapper {
+        let components = args.map(\.description)
+        let enforceTrailingSlash = components.last == "/"
+        let addition = components.dropLast(enforceTrailingSlash ? 1 : 0)
+            .joined(separator: "/")
+        
+        let update: String
+        if enforceTrailingSlash {
+            update = addition.withTrailingSlash
+        } else {
+            update = addition
+        }
+        
+        base.wrapped._path = base.wrapped._path.withTrailingSlash + update
+        return base
+    }
+    
     public func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Any>) -> Wrapper {
         var updated: String = ""
         if let starting = startingPath {
@@ -399,16 +426,13 @@ public class PathBuilder<Wrapper: BaseWrapper> {
         }
 
         if let arg = args.first, arg.key.isEmpty || arg.key == "path" {
-            assert(args.count >= 1)
             let arg = args[0]
-            assert(arg.key.isEmpty || arg.key == "path",
-                   "first arg should be path string with no label, or (path: ")
-            updated += arg.value as! String
+            updated += "\(arg.value)"
         }
 
-        args.forEach { entry, replacement in
-            guard !entry.isEmpty && entry != "path" else { return }
-            let wrapped = "{\(entry)}"
+        args.forEach { key, replacement in
+            guard !key.isEmpty && key != "path" else { return }
+            let wrapped = "{\(key)}"
             let replacement = "\(replacement)"
             updated.replaceFirstOccurence(of: wrapped, with: replacement)
         }

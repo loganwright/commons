@@ -89,6 +89,9 @@ extension RangeReplaceableCollection {
     @inlinable public func filter<T: Equatable>(where kp: KeyPath<Element, T>, matches: T) -> Self {
         filter({ $0[keyPath: kp] == matches })
     }
+    @inlinable public func filter<T: Equatable>(where kp: KeyPath<Element, T>, not match: T) -> Self {
+        filter({ $0[keyPath: kp] != match })
+    }
 }
 
 extension Array where Element: Identifiable {

@@ -34,6 +34,15 @@ class EndpointsTests: XCTestCase {
         
         let ided = base.id("1235/")
         XCTAssertEqual(ided.expandedUrl, "https://someurl.com/users/1235/")
+        
+        
+        let direct = Base("https://someurl.com/")
+            .users(1235, "/") as Base
+        XCTAssertEqual(direct.expandedUrl, "https://someurl.com/users/1235/")
+        
+        let multi = Base("https://someurl.com/")
+            .get("users", 1235, "/") as Base
+        XCTAssertEqual(multi.expandedUrl, "https://someurl.com/users/1235/")
     }
 
     func testOrdered() throws {
@@ -86,13 +95,17 @@ class EndpointsTests: XCTestCase {
                 XCTAssertEqual(flia.name, "flia")
                 XCTAssertEqual(flia.age, 234)
             }
+            .on.error { err in
+                Log.info("")
+            }
             .testing(on: group)
             .send()
     }
 
     func testError(_ group: XCTestExpectation) {
         Base.httpbin
-            .get("status/{code}", code: 345)
+//            .get("status/{code}", code: 345)
+            .get("status", 345)
             .contentType("application/json")
             .accept("application/json")
             .on.success { result in

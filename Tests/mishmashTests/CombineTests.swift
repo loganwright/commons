@@ -20,7 +20,8 @@ final class AlwaysTests: XCTestCase {
 
     func testBasePublisher() {
         Base("https://httpbin.org")
-            .post(path: "post")
+            .post.path("post") // weird httpbin naming
+//            .post(path: "post")
             .contentType("application/json")
             .accept("application/json")
             .header("Custom", "more")
