@@ -10,7 +10,7 @@ public protocol Client {
 extension URLSession: Client {
     public func send(_ request: URLRequest, completion: @escaping NetworkCompletion) {
         self.dataTask(with: request) { (data, response, error) in
-            main {
+            async.main {
                 completion(.init(response as? HTTPURLResponse, body: data, error: error))
             }
         }

@@ -73,7 +73,7 @@ fileprivate struct FlipCarousel: View {
             self.axis = .x
         }
         
-        after(3, on: .main, execute: change)
+        async.after(3, on: .main, execute: change)
     }
 }
 

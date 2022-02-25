@@ -29,13 +29,13 @@ struct Eager: ViewModifier {
     }
     
     func sequence(delay: @escaping () -> TimeInterval) {
-        after(delay()) {
+        async.after(delay()) {
             duration = Int.random(in: 0...5) < 3 ? 0.35 : 0.24
             value = outmax
-            after(duration) {
+            async.after(duration) {
                 duration = Int.random(in: 0...5) < 3 ? 0.12 : 0.16
                 value = innmin
-                after(duration) {
+                async.after(duration) {
                     sequence(delay: delay)
                 }
             }
