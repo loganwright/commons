@@ -130,6 +130,7 @@ class EndpointsTests: XCTestCase {
 
     func testOrdered() throws {
         let orderedTestCases = [
+            ("testBearer", testBearer),
             ("testBasicManual", testBasicManual),
             ("testGet", testGet),
             ("testPost", testPost),
@@ -139,6 +140,18 @@ class EndpointsTests: XCTestCase {
         ]
 
         orderedTestCases.forEach(execute)
+    }
+    
+    func testBearer(_ group: XCTestExpectation) {
+        Base.httpbin
+            .get("bearer")
+            .bearer(token: "some-user-token-here")
+            .on.success { resp in
+                XCTAssertEqual(resp.token, "some-user-token-here")
+                XCTAssertEqual(resp.authenticated?.bool, true)
+            }
+            .testing(on: group)
+            .send()
     }
 
     func testBasicManual(_ group: XCTestExpectation) {
