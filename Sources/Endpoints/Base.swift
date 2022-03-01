@@ -34,7 +34,7 @@ extension TypedBuilder: BaseWrapper {
     public var wrapped: Base { base }
 }
 
-protocol TypedBaseWrapper: BaseWrapper {
+public protocol TypedBaseWrapper: BaseWrapper {
     associatedtype ResponseType: Decodable
 }
 

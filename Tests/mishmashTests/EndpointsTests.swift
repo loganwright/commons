@@ -195,8 +195,9 @@ class EndpointsTests: XCTestCase {
             .extracting(dataPath: \.json)
             .typed(as: Person.self)
             .on.success { flia in
-                XCTAssertEqual(flia.name, "flia")
-                XCTAssertEqual(flia.age, 234)
+                let p = Person(name: "flia", age: 234)
+                XCTAssertEqual(flia, p)
+//                XCTAssertEqual(flia.age, 234)
             }
             .on.error { err in
                 Log.info("")

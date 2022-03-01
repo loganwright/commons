@@ -69,6 +69,7 @@ struct ZAlign: View {
 }
 
 @available(iOS 15, *)
+@available(macOS 12, *)
 struct Blank: View {
     var body: some View {
         Rectangle()
@@ -78,6 +79,7 @@ struct Blank: View {
 }
 
 @available(iOS 15, *)
+@available(macOS 12, *)
 struct CenteredHeader: View {
     var body: some View {
         VStack {
@@ -100,6 +102,7 @@ extension ViewDimensions {
 }
 
 @available(iOS 15, *)
+@available(macOS 12, *)
 var optOne: some View {
     ZStack {
         CenteredHeader()
@@ -112,6 +115,7 @@ var optOne: some View {
 
 
 @available(iOS 15, *)
+@available(macOS 12, *)
 struct ZAlignPreview: PreviewProvider {
     static var previews: some View {
         optOne
