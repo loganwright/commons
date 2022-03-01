@@ -19,6 +19,16 @@ public let IS_SIMULATOR: Bool = {
     #endif
 }()
 
+
+public let IS_DEBUG: Bool = {
+    #if DEBUG
+    true
+    #else
+    false
+    #endif
+}()
+
+
 public let IS_PRODUCTION: Bool = {
     #if DEBUG
     return false

@@ -17,7 +17,7 @@ struct ConstrainedAlignmentGuidesExample: View {
                     )
                     palette[9]
                         .alignmentGuide(.leading) { d in
-                            d[HorizontalAlignment.leading] + 82// - 120
+                            d[HorizontalAlignment.leading] + 182// - 120
                         }
                         .overlay(Rectangle().fill(palette[3]).frame(height: 8))
                     
@@ -32,9 +32,11 @@ struct ConstrainedAlignmentGuidesExample: View {
             }
             .padding([.leading, .trailing], padding / 2)
             .frame(width: geo.size.width)
+            .dashedBorder()
         }
         .dashedBorder(palette[3])
         .padding(120)
+        .dashedBorder()
     }
 }
 
@@ -53,8 +55,8 @@ struct DashedBorder: Shape {
                 lineCap: .round,
                 lineJoin: .bevel,
                 miterLimit: 8,
-                dash: [40, 20, 20, 20], //[8, 4, 4],
-                dashPhase: 6
+                dash: [8],//[40, 20, 20, 20], //[8, 4, 4],
+                dashPhase: 0
             )
         )
     }

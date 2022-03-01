@@ -297,12 +297,7 @@ struct ExampleCell<Stack: StackView>: View where Stack.Content == ColorViews {
             .border(palette.first!)
             
             VStack(alignment: .leading) {
-                HStack {
-                    Text("stack: \((stackAlignment == frameAlignment).description)")
-                        .foregroundColor(.red)
-                    .commonStyle(size: 10)
-                    
-                }
+                Text("stack: ")
                 Text(stackAlignment.description)
                     .commonStyle(size: 12, .medium)
                 Text("frame: ")
@@ -314,7 +309,7 @@ struct ExampleCell<Stack: StackView>: View where Stack.Content == ColorViews {
             .padding(4)
         }
         .frame(alignment: .leading)
-        .debuggable()
+//        .debuggable()
     }
 }
 

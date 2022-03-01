@@ -81,7 +81,7 @@ extension View {
 }
 
 //struct All
-@available(iOS 15, *)
+//@available(iOS 15, *)
 struct AlignmentGuidesExample: View {
     @State private var msgs = "<n>"
     
@@ -103,6 +103,7 @@ struct AlignmentGuidesExample: View {
 //                    .horizontal(.trailing, upstream: $aaaa)
                 Circle().fill(.orange)
                     .frame(width: 200, height: 60)
+                    .dashedBorder(.yellow)
                 ZStack {
                     Rectangle()
                         .fill(palette[0])
@@ -124,17 +125,18 @@ struct AlignmentGuidesExample: View {
                     palette[3]
 //                    ZStack {
                     palette[4]
-//                        .alignmentGuide(alignment) { d in
-//                            40
-//                        }
                     Circle()
                         .frame(width: 20, height: 20)
-                        .position(x: 40, y: 0)
+//                        .position(x: 40, y: 0)
 //                    }
                 }
 //                .padding(20)
+                .frame(width: 100, height: 44)
+                .alignmentGuide(.myAlignment, computeValue: { d in
+                    d[.leading]
+                })
                 .dashedBorder(.blue, 8)
-                .padding(28)
+//                .padding(8)
                 .dashedBorder(.purple)
                 
                 //            ForEach(1...4, id: \.self) { idx in
@@ -157,11 +159,12 @@ struct AlignmentGuidesExample: View {
             //            .frame(alignment: .top)
             .dashedBorder(.red, 8)
             .padding(20)
+//            .frame(alignment: .topLeading)
             .dashedBorder(.pink, 12)
 //            .frame(width: geo.size.width * 0.8,
 //                   height: geo.size.height * 0.8,
 //                   alignment: .center)
-            .dashedBorder(.black, 20)
+//            .dashedBorder(.black, 20)
 //            .offset(x: (geo.size.width * 0.2) / 2, y: (geo.size.height * 0.2) / 2)
 //        }
 //        .dashedBorder(.orange, 40)

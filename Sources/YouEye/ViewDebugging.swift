@@ -2,7 +2,7 @@ import SwiftUI
 import Commons
 
 extension View {
-    public func dashedBorder(_ color: Color = .red, _ width: Double = 4) -> some View {
+    public func dashedBorder(_ color: Color = .red, _ width: Double = 2) -> some View {
         self.overlay(DashedBorder(width: width).fill(color))
     }
 }
