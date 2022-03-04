@@ -1,11 +1,3 @@
-/**
- /Users/loganwright/Desktop/commons/Sources/Commons/Builder/Assigner.swift:17:21: note: found this candidate
-         public func callAsFunction(_ val: Value) -> Builder<Model> {
-                     ^
- /Users/loganwright/Desktop/commons/Sources/Commons/Builder/Assigner.swift:24:21: note: found this candidate
-         public func callAsFunction(_ from: @escaping (Model) -> Value) -> Builder<Model> {
- */
-
 extension Builder {
     /// an assigner is returned from keypaths by the builder with
     /// the metadata required to set corresponding attribute
@@ -29,17 +21,40 @@ extension Builder {
             })
         }
 
-        public var map: Map { Map(assigner: self) }
-
-        public struct Map {
-            fileprivate let assigner: Assigner<Value>
-
-            public func callAsFunction(_ map: @escaping (Model) -> Value) -> Builder<Model> {
-                let currentModel = assigner.ref.make()
-                let mapped = map(currentModel)
-                return assigner(mapped)
-            }
+        public func callAsFunction(_ map: @escaping (Builder<Value>) -> Builder<Value>) -> Builder<Model> {
+            let currentModel = ref.make()[keyPath: kp]
+            let builder = Builder<Value> { currentModel }
+            let mapped = map(builder)
+            let built = mapped.make()
+            return self(built)
         }
+//        
+//        public var map: Map { Map(assigner: self) }
+//
+//        public struct Map {
+//            fileprivate let assigner: Assigner<Value>
+//
+//            public func callAsFunction(_ map: @escaping (Model) -> Value) -> Builder<Model> {
+//                let currentModel = assigner.ref.make()
+//                let mapped = map(currentModel)
+//                return assigner(mapped)
+//            }
+//        }
+//        
+//        
+//        public var build: SubBuilder { SubBuilder(assigner: self) }
+//        
+//        public struct SubBuilder {
+//            fileprivate let assigner: Assigner<Value>
+//
+//            public func callAsFunction(_ map: @escaping (Builder<Value>) -> Builder<Value>) -> Builder<Model> {
+//                let currentModel = assigner.ref.make()[keyPath: assigner.kp]
+//                let builder = Builder<Value> { currentModel }
+//                let mapped = map(builder)
+//                let built = mapped.make()
+//                return assigner(built)
+//            }
+//        }
 
         /// todo:
         ///         pass.if(credentials.contain(.admin)).then(.admin).else(.public)

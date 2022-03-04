@@ -99,6 +99,29 @@ class JSONDataTests: XCTestCase {
     }
 }
 
+class DynmicTests: XCTestCase {
+    @dynamicCallable
+    @dynamicMemberLookup
+    struct Dyno {
+        subscript(dynamicMember kp: String) -> Dyno {
+            self
+        }
+        
+        func dynamicallyCall(withArguments args: [Any]) {
+            print("args: \(args)")
+        }
+        
+        func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Any>) {
+            print("args: \(args)")
+        }
+    }
+    
+    func testDynamics() {
+        let trex = Dyno()
+        trex.somedynamicname(1, 2, 4, heyoSwift: ["don't do this": "but useful for interop"])
+    }
+}
+    
 class CodableStorageTests: XCTestCase {
     struct Item: Codable, Equatable {
         let id: String

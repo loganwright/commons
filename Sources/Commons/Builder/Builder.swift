@@ -32,9 +32,9 @@ public struct Builder<Model> {
         return mutable
     }
 
-    public func passthrough(_ passthrough: (Builder<Model>) -> Builder<Model>) -> Builder<Model> {
-        passthrough(self)
-    }
+//    public func passthrough(_ passthrough: (Builder<Model>) -> Builder<Model>) -> Builder<Model> {
+//        passthrough(self)
+//    }
 
     // zucker
     public var make: Self { self }

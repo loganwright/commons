@@ -652,6 +652,46 @@ public final class HeadersBuilder<Wrapper: BaseWrapper> {
         let headerKey = HeaderKey(stringLiteral: "")[keyPath: key]
         return .init(base, key: headerKey.stringValue)
     }
+    
+    public subscript(dynamicMember key: String) -> HeadersBuilderExistingKey<Wrapper> {
+        return .init(base, key: key.toHeaderKey)
+    }
+}
+
+extension CharacterSet {
+    static let uppercaseLetters = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+}
+
+extension Unicode.Scalar {
+    var isUppercase: Bool {
+        CharacterSet.uppercaseLetters.contains(self)
+    }
+}
+
+extension String {
+    var camelcaseComponents: [String] {
+        self.splitIncludeDelimiter(whereSeparator: \.isUppercase).map { String($0) }
+    }
+    
+    fileprivate var toHeaderKey: String {
+        var comps = self.camelcaseComponents
+        comps[0] = comps[0].capitalized
+        return comps.joined(separator: "-")
+    }
+}
+
+extension Sequence {
+    func splitIncludeDelimiter(whereSeparator shouldDelimit: (Element) throws -> Bool) rethrows -> [[Element]] {
+        try self.reduce([[]]) { group, next in
+            var group = group
+            if try shouldDelimit(next) {
+                group.append([next])
+            } else {
+                group[group.lastIdx].append(next)
+            }
+            return group
+        }
+    }
 }
 
 extension BaseWrapper {

@@ -67,12 +67,11 @@ final class BuilderTests: XCTestCase {
             var iii: Inny = .init()
         }
         let header = Builder(Outy.init)
-            .iii.map { model in
-                Builder { model.iii }
+            .iii { value in
+                value
                     .a("will be overwritten")
                     .b("returns")
                     .thirdsy.moar("terple")
-                    .make()
             }
             .ooo(10_000)
 
@@ -150,11 +149,10 @@ final class BuilderTests: XCTestCase {
 
         let build = Builder(B.init)
         let down = build.a.larb(22)
-        let the = down.a.map { model in
-            Builder { model.a }
-                .larb(424)
-                .make()
-        }
+        let the = down
+            .a { subBuilder in
+                subBuilder.larb(if: true, 424)
+            }
 
         let chain = the.make()
         (1...5).forEach { _ in

@@ -33,6 +33,18 @@ class EndpointsTests: XCTestCase {
         XCTAssert(base._query?.args?.string?.isEmpty == false)
     }
     
+    func testCamelcaseSplit() {
+        let comps = "iAmCamelCase".camelcaseComponents
+        XCTAssertEqual(comps, ["i", "Am", "Camel", "Case"])
+    }
+    
+    func testHeadersDynamic() {
+        let b = Base.httpbin
+            .h.xCustomHeader("my-custom-val")
+            
+        XCTAssertEqual(b._headers, ["X-Custom-Header": "my-custom-val"])
+    }
+    
     func testUrlId() {
         let base = Base("https://someurl.com/")
             .users
@@ -63,12 +75,14 @@ class EndpointsTests: XCTestCase {
         let c = Base.httpbin.post.users.id(1235, enforceTrailingSlash: true)
         let d = Base.httpbin.post.users.id("1235/")
         let e = Base.httpbin.post.users.id(1235).path("/")
-        let f = Base.httpbin.post(path: "users/{id}/", id: 1235)
-        let g = Base.httpbin.post(path: "{multiple}/{values}/", multiple: "users", values: 1235)
+        let f = Base.httpbin.post("users/{id}/", id: 1235)
+        let g = Base.httpbin.post(path: "users/{id}/", id: 1235)
+        let h = Base.httpbin.post(path: "{multiple}/{values}/", multiple: "users", values: 1235)
         let all = [
-            a, b, c, d, e, f, g
+            a, b, c, d, e, f, g, h
         ]
         XCTAssertEqual(all.map(\.expandedUrl).set.count, 1)
+        XCTAssertEqual("https://httpbin.org/users/1235/", a.expandedUrl)
     }
     
     struct Person: Codable, Equatable, Hashable {
@@ -86,9 +100,8 @@ class EndpointsTests: XCTestCase {
         let all = [
             a, b, c, d, e
         ]
-        let final = all.map(\.expandedUrl).set.first
-        XCTAssertNotNil(final)
-        XCTAssertEqual(final, "https://httpbin.org?age=234&name=flia")
+        XCTAssertEqual(all.map(\.expandedUrl).set.count, 1, "all query apis should create same url")
+        XCTAssertEqual(all[0].expandedUrl, "https://httpbin.org?age=234&name=flia")
     }
     
     func testQueryArrayEncoding() {
