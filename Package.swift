@@ -55,7 +55,6 @@ let package = Package(
         .library(name: "Endpoints", targets: ["Endpoints"]),
         .library(name: "UICommons", targets: ["UICommons"]),
         .library(name: "AnimationKit", targets: ["AnimationKit"]),
-        .library(name: "YouEye", targets: ["YouEye"]),
     ],
     targets: [
         .target(
@@ -73,11 +72,11 @@ let package = Package(
             name: "AnimationKit",
             dependencies: ["Commons"]),
         
-        // swiftui
-        .target(
-            name: "YouEye",
-            dependencies: ["Commons"]),
-//            dependencies: []),
+//        // swiftui
+//        .target(
+//            name: "YouEye",
+//            dependencies: ["Commons"]),
+////            dependencies: []),
         
         // testing
         .testTarget(
@@ -87,7 +86,7 @@ let package = Package(
                 "Endpoints",
                 "UICommons",
                 "AnimationKit",
-                "YouEye",
+//                "YouEye",
             ])
     ]
 )
