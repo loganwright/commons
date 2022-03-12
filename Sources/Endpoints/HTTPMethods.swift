@@ -9,7 +9,7 @@ public enum HTTPMethod: String, Codable, Equatable {
 }
 
 public struct HTTPMethods {
-    static let group = HTTPMethods()
+    internal static let instance = HTTPMethods()
     
     public var get: HTTPMethod = .get
     public var post: HTTPMethod = .post

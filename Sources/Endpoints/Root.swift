@@ -104,13 +104,13 @@ extension BasicRequest {
     
     /// get, post, put, patch, delete
     public subscript(dynamicMember key: KeyPath<HTTPMethods, HTTPMethod>) -> PathBuilder<Self> {
-        wrapped._method = HTTPMethods.group[keyPath: key]
+        wrapped._method = HTTPMethods.instance[keyPath: key]
         return PathBuilder(self)
     }
 
     /// get, post, put, patch, delete
     public subscript(dynamicMember key: KeyPath<HTTPMethods, HTTPMethod>) -> Self {
-        wrapped._method = HTTPMethods.group[keyPath: key]
+        wrapped._method = HTTPMethods.instance[keyPath: key]
         return self
     }
     

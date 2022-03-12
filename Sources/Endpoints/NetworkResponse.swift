@@ -4,47 +4,46 @@ import Commons
 public typealias NetworkResult = Result<NetworkResponse, Error>
 public typealias NetworkCompletion = (NetworkResult) -> Void
 
-@propertyWrapper
-@dynamicMemberLookup
-public struct Archivable<T>: Codable where T: NSObject, T: NSCoding {
-    public var wrappedValue: T
-    
-    public init(wrappedValue: T) {
-        self.wrappedValue = wrappedValue
-    }
-    
-    public init(from decoder: Decoder) throws {
-        let data = try Data(from: decoder)
-        guard let unarchived = try NSKeyedUnarchiver.unarchivedObject(ofClass: T.self, from: data) else {
-            throw "unable to unarchive data: \(data.string ?? data.count.description)"
-        }
-        self.wrappedValue = unarchived
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        let data = try NSKeyedArchiver.archivedData(withRootObject: wrappedValue, requiringSecureCoding: false)
-        try data.encode(to: encoder)
-    }
-    
-    public subscript<U>(dynamicMember kp: KeyPath<T, U>) -> U {
-        wrappedValue[keyPath: kp]
-    }
-    
-    public subscript<U>(dynamicMember kp: WritableKeyPath<T, U>) -> U {
-        get {
-            wrappedValue[keyPath: kp]
-        }
-        set {
-            wrappedValue[keyPath: kp] = newValue
-        }
-    }
-}
-
 public struct NetworkResponse: Codable {
-    @Archivable
+    @ArchivableCodable
     public fileprivate(set) var http: HTTPURLResponse
     public fileprivate(set) var body: Data?
+}
 
+extension NetworkResponse {
+    /// if the response is valid json, accessible here
+    ///
+    /// WARNING: this can be expensive due to serialization
+    /// conversions.
+    ///
+    /// Do NOT:
+    ///
+    ///     // ***** NO *****
+    ///     resp.json.a = "some thing"
+    ///     resp.json.b = 123
+    ///     ..
+    ///
+    ///Do:
+    ///
+    ///     var modifying = resp.json
+    ///     modifying.a = "some thing"
+    ///     modifying.b = 123
+    ///     ..
+    ///
+    /// the second example will have CONSIDERABLY lighter
+    /// workload
+    ///
+    public var json: JSON? {
+        get {
+            catching { try body?.decode() }
+        }
+        set {
+            body = catching { try newValue.encode() }
+        }
+    }
+    
+    /// uses Foundation json parsing to get the contents
+    /// of the response's body
     public var anyobj: AnyObject? {
         do {
             return try body.flatMap {
@@ -57,20 +56,9 @@ public struct NetworkResponse: Codable {
     }
 }
 
-extension NetworkResponse {
-    public var json: JSON? {
-        get {
-            catching { try body?.decode() }
-        }
-        set {
-            body = catching { try newValue.encode() }
-        }
-    }
-}
-
 extension NetworkResponse: CustomStringConvertible {
     public var description: String {
-        let msg = body.flatMap { String(bytes: $0, encoding: .utf8) } ?? "<no-body>"
+        let msg = body.flatMap { String(bytes: $0, encoding: .utf8) ?? "Data(\($0.count))" } ?? "<no-body>"
         return """
         NetworkResponse:
         \(http)
@@ -107,14 +95,14 @@ public struct NNNNResponse {
 /// but not supported generics outside of declaration
 private struct ResultMap: Codable {
     var success: NetworkResponse? = nil
-    private var archivedFailure: Archivable<NSError>? = nil
+    private var archivedFailure: ArchivableCodable<NSError>? = nil
     
     var failure: NSError? {
         get {
             archivedFailure?.wrappedValue
         }
         set {
-            archivedFailure = newValue.flatMap(Archivable.init)
+            archivedFailure = newValue.flatMap(ArchivableCodable.init)
         }
     }
 }
@@ -166,17 +154,6 @@ fileprivate extension NSError {
                   userInfo: [NSLocalizedDescriptionKey: desc])
     }
 }
-
-//extension Dictionary where Key == String, Value == String {
-//    fileprivate func combined(with rhs: Dictionary?, overwrite: Bool = true) -> Dictionary {
-//        var combo = self
-//        rhs?.forEach { k, v in
-//            guard overwrite || combo[k] == nil else { return }
-//            combo[k] = v
-//        }
-//        return combo
-//    }
-//}
 
 extension URLRequest {
     public mutating func setBody(json: Data) {

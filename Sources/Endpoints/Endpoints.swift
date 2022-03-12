@@ -1,5 +1,7 @@
-/// this is a hacky type to add paths to host
-/// maybe future all host
+/// endpoint, also known as path, slug, ..
+///
+/// extend this to define paths you will reuse
+/// across your api interaction
 public struct Endpoint: ExpressibleByStringLiteral {
     public typealias StringLiteralType = String
 

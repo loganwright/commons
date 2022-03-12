@@ -2,6 +2,13 @@ import Foundation
 import Commons
 
 /// currently here as a reference, not sure how to genericize yet
+/// this middleware sits on all authorized requests
+/// upon receiving an error for an expired token it attempts
+/// another request using the same responder chain
+///
+/// MUST go to front of middleware, if others
+/// are ahead of it, they may trigger with the error before
+/// the refresh
 struct RefreshMiddleware: Middleware {
 
     let base: Root
@@ -53,36 +60,12 @@ struct RefreshMiddleware: Middleware {
 }
 
 
-//private class Auth {
-//    var access = ""
-//    var refresh = ""
-//}
-//
-//private var globalAuth = Auth()
-//
-//extension RefreshMiddleware {
-//    fileprivate static func example(on base: Base) -> RefreshMiddleware {
-//        RefreshMiddleware.init(
-//            base: Base,
-//            refreshRequest: {
-//                base("https://api.myapp.io")
-//                    .post("token/refresh")
-//                    .body(refresh: globalAuth.refresh)
-//                    .on.success { resp in
-//                        globalAuth.access = resp.json!.access!.string!
-//                    }
-//
-//            },
-//            updateAuthHeaders: { base: Base, resp in
-//                globalAuth.access = resp.json!.access!.string!
-//            }
-//        )
+extension Root {
+//    func using(_ auth: Auth) -> Self {
+//        let refresh = RefreshMiddleware(self, auth)
+//        return middleware(refresh)
+//            .guard(!auth.access.isEmpty, else: "user not authorized")
+//            .header.authorization("Bearer \(auth.access)")
+//            as! Self
 //    }
-//}
-//
-//extension Base {
-//    private func refreshing() -> Self {
-//        let refresh = RefreshMiddleware.example(on: self)
-//        return middleware(refresh, to: .front)
-//    }
-//}
+}
