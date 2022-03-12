@@ -10,7 +10,7 @@ struct RollTransition: ViewModifier {
 extension AnyTransition {
     static var spinIn: AnyTransition {
         .modifier(
-            active: RollTransition(degrees: -(360 * 8)),
+            active: RollTransition(degrees: (360 * 8)),
             identity: RollTransition(degrees: 0)
         )
     }

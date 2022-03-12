@@ -96,12 +96,12 @@ public protocol LogOutput {
 
 @dynamicMemberLookup
 public struct Entry: Codable {
-    let crumb: LogMeta
-    let msg: String
+    public let crumb: LogMeta
+    public let msg: String
     
-    var display: String { crumb.tag + msg }
+    public var display: String { crumb.tag + msg }
     
-    subscript<T>(dynamicMember kp: KeyPath<LogMeta, T>) -> T {
+    public subscript<T>(dynamicMember kp: KeyPath<LogMeta, T>) -> T {
         crumb[keyPath: kp]
     }
 }
