@@ -231,9 +231,11 @@ extension TypedBaseWrapper {
     }
 }
 
+#warning("rename to 'Root'")
+public typealias Base = Root
 
 @dynamicMemberLookup
-public class Base {
+public class Root {
     /// the root url to append to
     public private(set) var baseUrl: String
     public var _method: HTTPMethod = .get

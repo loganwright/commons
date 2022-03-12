@@ -12,6 +12,9 @@ public final class TrafficObserver<C: Client>: ObservableObject, Client {
     @Published
     public var active: [String: URLRequest] = [:]
     /// requests that have already received a response
+    
+    // GOAL: workout a better system here, currently using `URLRequest` to avoid
+    // capturing the Root object, need some sort of representative or model 
     @Published
     public var history: [(URLRequest, NetworkResult)] = []
 
