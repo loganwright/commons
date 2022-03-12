@@ -1,7 +1,7 @@
 #if canImport(Combine)
 import Combine
 
-extension Base {
+extension Root {
     public var publisher: BasePublisher { BasePublisher(self) }
 }
 
@@ -9,9 +9,9 @@ public class BasePublisher: Publisher {
     public typealias Output = NetworkResponse
     public typealias Failure = Error
 
-    public let base: Base
+    public let base: Root
 
-    public init(_ base: Base) {
+    public init(_ base: Root) {
         self.base = base
     }
 

@@ -4,13 +4,13 @@ import Commons
 /// currently here as a reference, not sure how to genericize yet
 struct RefreshMiddleware: Middleware {
 
-    let base: Base
-    let refreshRequest: () -> Base
-    let updateAuthHeaders: (Base, JSON) -> Void
+    let base: Root
+    let refreshRequest: () -> Root
+    let updateAuthHeaders: (Root, JSON) -> Void
 
-    init(_ base: Base,
-         refreshRequest: @escaping () -> Base,
-         updateAuthHeaders: @escaping (Base, JSON) -> Void) {
+    init(_ base: Root,
+         refreshRequest: @escaping () -> Root,
+         updateAuthHeaders: @escaping (Root, JSON) -> Void) {
         self.base = base
         self.refreshRequest = refreshRequest
         self.updateAuthHeaders = updateAuthHeaders

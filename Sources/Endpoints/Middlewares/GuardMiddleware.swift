@@ -1,6 +1,6 @@
-extension Base {
+extension Root {
     // TODO: expand conditionals?
-    public func `if`(_ condition: Bool, _ op: (Base) -> Base) -> Base {
+    public func `if`(_ condition: Bool, _ op: (Self) -> Self) -> Self {
         if condition {
             return op(self)
         } else {
@@ -9,7 +9,7 @@ extension Base {
     }
 }
 
-extension Base {
+extension Root {
     public func `guard`(_ condition: @escaping @autoclosure () -> Bool, else error: Error) -> Self {
         self.middleware(Guard(condition(), error: error))
     }

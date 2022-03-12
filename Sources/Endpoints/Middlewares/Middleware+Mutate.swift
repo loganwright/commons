@@ -51,7 +51,8 @@ extension ModifyBody {
     }
 }
 
-extension BaseWrapper {
+#warning("rm")
+extension BasicRequest {
     
     /// when the desired data is nested inside of a bigger response
     /// this can be used to extract it
@@ -71,12 +72,22 @@ extension BaseWrapper {
     /// - Parameters:
     ///   - kp: the path pointing to the data
     ///   - front: whether or not the extraction should go to the front of the responder chain
-    public func extracting(dataPath kp: KeyPath<JSON, JSON?>, front: Bool = true) -> Self {
-        middleware(ModifyBody(extracting: kp), front: front)
-    }
+//    public func extracting(dataPath kp: KeyPath<JSON, JSON?>, front: Bool = true) -> Self {
+//        middleware(ModifyBody(extracting: kp), front: front)
+//    }
 }
 
-extension TypedBaseWrapper {
+extension Request {
+    /// when the desired data is nested inside of a bigger response
+    /// this can be used to extract it
+    /// ie:
+    ///
+    ///     {
+    ///         "children": [
+    ///         ...
+    ///
+    /// would access like:
+    ///
     ///     Host.myapi
     ///         .extracting(dataPath: \.children)
     ///         .on.success { children in
@@ -102,9 +113,9 @@ extension TypedBaseWrapper {
 ///
 /// useful for combining for example multiple api calls into one
 public struct ChainDependency<D: Decodable>: Middleware {
-    private let map: (D) -> BaseWrapper
+    private let map: (D) -> BasicRequest
     
-    public init(_ map: @escaping (D) -> BaseWrapper) {
+    public init(_ map: @escaping (D) -> BasicRequest) {
         self.map = map
     }
     
@@ -120,16 +131,16 @@ public struct ChainDependency<D: Decodable>: Middleware {
     }
 }
 
-extension BaseWrapper {
-    /// chain subsequent requests that are dependent on the body of
-    /// a preceding request
-    public func chain<D: Decodable>(responseTo map: @escaping (D) -> BaseWrapper) -> Self {
+extension BasicRequest {
+    /// chain subsequent requests that use the response of the previous request
+    /// to perform a subsequent request
+    public func chain<D: Decodable>(responseTo map: @escaping (D) -> BasicRequest) -> Self {
         middleware(ChainDependency(map))
     }
     
-    /// chain subsequent requests that are dependent on the body of
-    /// a preceding request
-    public func chain(responseTo map: @escaping (JSON?) -> BaseWrapper) -> Self {
+    /// chain subsequent requests that use the response of the previous request
+    /// to perform a subsequent request
+    public func chain(responseTo map: @escaping (JSON?) -> BasicRequest) -> Self {
         middleware(ChainDependency(map))
     }
 }

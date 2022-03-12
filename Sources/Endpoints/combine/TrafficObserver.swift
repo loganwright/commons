@@ -41,8 +41,8 @@ extension TrafficObserver where C == URLSession {
     public static let `default` = TrafficObserver(URLSession(configuration: .default))
 }
 
-extension Base {
-    public func client(_ observer: TrafficObserver<URLSession>, debugOnly: Bool) -> Base {
+extension Root {
+    public func client(_ observer: TrafficObserver<URLSession>, debugOnly: Bool) -> Self {
         if debugOnly, IS_PRODUCTION {
             return self
         } else {

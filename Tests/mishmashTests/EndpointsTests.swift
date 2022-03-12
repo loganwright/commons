@@ -3,8 +3,8 @@ import XCTest
 @testable import Commons
 @testable import Endpoints
 
-extension Base {
-    static var httpbin: Base { Base("httpbin.org") }
+extension Root {
+    static var httpbin: Root { Root("httpbin.org") }
 }
 
 extension Endpoint {
@@ -13,7 +13,7 @@ extension Endpoint {
     var api: Endpoint { "api/v{version}/" }
 }
 
-typealias EndpointRequest = TypedBaseWrapper
+typealias EndpointRequest = Request
 
 class EndpointsTests: XCTestCase {
     func testNotes() {
@@ -21,13 +21,13 @@ class EndpointsTests: XCTestCase {
     }
     
     func testVersionReplacement() {
-        let url = Base.httpbin.api(version: 0).expandedUrl
+        let url = Root.httpbin.api(version: 0).expandedUrl
         XCTAssertEqual(url, "https://httpbin.org/api/v0/")
     }
     
     func testUrlParts() {
         let raw = "https://api-test.padcaster-core.com/api/v0/files/commit/?args=%7B%22user%22%3A+1%2C+%22file%22%3A+114%2C+%22target%22%3A+5%2C+%22name%22%3A+%22BigBuckBunny.ogv+-+COPY+-+1%22%7D.1645788163.5bf321ca3e683807aee13904a536c614c7be1710b0f3362eba92d487d0d43bc5"
-        let base = Base(raw)
+        let base = Root(raw)
         XCTAssertEqual(base.baseUrl, "https://api-test.padcaster-core.com")
         XCTAssertEqual(base._path, "/api/v0/files/commit/")
         XCTAssert(base._query?.args?.string?.isEmpty == false)
@@ -39,14 +39,14 @@ class EndpointsTests: XCTestCase {
     }
     
     func testHeadersDynamic() {
-        let b = Base.httpbin
+        let b = Root.httpbin
             .h.xCustomHeader("my-custom-val")
             
         XCTAssertEqual(b._headers, ["X-Custom-Header": "my-custom-val"])
     }
     
     func testUrlId() {
-        let base = Base("https://someurl.com/")
+        let base = Root("https://someurl.com/")
             .users
             .get()
             
@@ -56,28 +56,28 @@ class EndpointsTests: XCTestCase {
         XCTAssertEqual(ided.expandedUrl, "https://someurl.com/users/1235/")
         
         
-        let direct = Base("https://someurl.com/")
+        let direct = Root("https://someurl.com/")
             .users(1235, "/")
         XCTAssertEqual(direct.expandedUrl, "https://someurl.com/users/1235/")
         
-        let multi = Base("https://someurl.com/")
+        let multi = Root("https://someurl.com/")
             .get("users", 1235, "/")
         XCTAssertEqual(multi.expandedUrl, "https://someurl.com/users/1235/")
     }
     
     func testSimple() {
-        XCTAssertEqual(Base("someurl.com").expandedUrl, "https://someurl.com")
+        XCTAssertEqual(Root("someurl.com").expandedUrl, "https://someurl.com")
     }
     
     func testPathAPIOptions() {
-        let a = Base.httpbin.post("users", 1235, "/")
-        let b = Base.httpbin.post.users(1235, "/")
-        let c = Base.httpbin.post.users.id(1235, enforceTrailingSlash: true)
-        let d = Base.httpbin.post.users.id("1235/")
-        let e = Base.httpbin.post.users.id(1235).path("/")
-        let f = Base.httpbin.post("users/{id}/", id: 1235)
-        let g = Base.httpbin.post(path: "users/{id}/", id: 1235)
-        let h = Base.httpbin.post(path: "{multiple}/{values}/", multiple: "users", values: 1235)
+        let a = Root.httpbin.post("users", 1235, "/")
+        let b = Root.httpbin.post.users(1235, "/")
+        let c = Root.httpbin.post.users.id(1235, enforceTrailingSlash: true)
+        let d = Root.httpbin.post.users.id("1235/")
+        let e = Root.httpbin.post.users.id(1235).path("/")
+        let f = Root.httpbin.post("users/{id}/", id: 1235)
+        let g = Root.httpbin.post(path: "users/{id}/", id: 1235)
+        let h = Root.httpbin.post(path: "{multiple}/{values}/", multiple: "users", values: 1235)
         let all = [
             a, b, c, d, e, f, g, h
         ]
@@ -91,12 +91,12 @@ class EndpointsTests: XCTestCase {
     }
     
     func testQueryAPIOptions() {
-        let a = Base.httpbin.get.query(name: "flia", age: 234)
-        let b = Base.httpbin.get.query.name("flia").age(234) as Base
+        let a = Root.httpbin.get.query(name: "flia", age: 234)
+        let b = Root.httpbin.get.query.name("flia").age(234) as Root
         let flia = Person(name: "flia", age: 234)
-        let c = Base.httpbin.get.query(flia)
-        let d = Base.httpbin.get.q(name: "flia", age: 234)
-        let e = Base.httpbin.get.q.name("flia").q.age(234) as Base
+        let c = Root.httpbin.get.query(flia)
+        let d = Root.httpbin.get.q(name: "flia", age: 234)
+        let e = Root.httpbin.get.q.name("flia").q.age(234) as Root
         let all = [
             a, b, c, d, e
         ]
@@ -105,15 +105,15 @@ class EndpointsTests: XCTestCase {
     }
     
     func testQueryArrayEncoding() {
-        let a = Base.httpbin.get.query(numbers: [1, 4, 6])
-        let b = Base.httpbin.get.query.numbers([1, 4, 6]) as Base
+        let a = Root.httpbin.get.query(numbers: [1, 4, 6])
+        let b = Root.httpbin.get.query.numbers([1, 4, 6]) as Root
         struct Object: Encodable {
             var numbers: [Int] = [1, 4, 6]
         }
         let obj = Object()
-        let c = Base.httpbin.get.query(obj)
-        let d = Base.httpbin.get.q(numbers: [1, 4, 6])
-        let e = Base.httpbin.get.q.numbers([1, 4, 6]) as Base
+        let c = Root.httpbin.get.query(obj)
+        let d = Root.httpbin.get.q(numbers: [1, 4, 6])
+        let e = Root.httpbin.get.q.numbers([1, 4, 6]) as Root
         let all = [
             a, b, c, d, e
         ]
@@ -127,12 +127,12 @@ class EndpointsTests: XCTestCase {
     }
     
     func testBodyAPIOptions() throws {
-        let a = Base.httpbin.post.body(name: "flia", age: 234)
-        let b = Base.httpbin.post.body.name("flia").age(234) as Base
+        let a = Root.httpbin.post.body(name: "flia", age: 234)
+        let b = Root.httpbin.post.body.name("flia").age(234) as Root
         let flia = Person(name: "flia", age: 234)
-        let c = Base.httpbin.post.body(flia)
-        let d = Base.httpbin.post.b(name: "flia", age: 234)
-        let e = Base.httpbin.post.b.name("flia").q.age(234) as Base
+        let c = Root.httpbin.post.body(flia)
+        let d = Root.httpbin.post.b(name: "flia", age: 234)
+        let e = Root.httpbin.post.b.name("flia").q.age(234) as Root
         let all = [
             a, b, c, d, e
         ]
@@ -156,7 +156,7 @@ class EndpointsTests: XCTestCase {
     }
     
     func testBearer(_ group: XCTestExpectation) {
-        Base.httpbin
+        Root.httpbin
             .get("bearer")
             .bearer(token: "some-user-token-here")
             .on.success { resp in
@@ -168,7 +168,7 @@ class EndpointsTests: XCTestCase {
     }
 
     func testBasicManual(_ group: XCTestExpectation) {
-        Base("httpbin.org")
+        Root("httpbin.org")
             .h.contentType("application/json")
             .h.accept("application/json")
             .h("X-App-Custom", "customval")
@@ -178,7 +178,7 @@ class EndpointsTests: XCTestCase {
     }
     
     func testGet(_ group: XCTestExpectation) {
-        Base.httpbin
+        Root.httpbin
             .get
             .testGet
             // all identical
@@ -200,7 +200,7 @@ class EndpointsTests: XCTestCase {
     }
 
     func testPost(_ group: XCTestExpectation) {
-        Base.httpbin.post("post")
+        Root.httpbin.post("post")
             .h.contentType("application/type")
             .h.accept("application/json")
             .body(name: "flia", age: 234)
@@ -220,7 +220,7 @@ class EndpointsTests: XCTestCase {
     }
 
     func testError(_ group: XCTestExpectation) {
-        Base.httpbin
+        Root.httpbin
             .get("status", 345)
             .contentType("application/json")
             .accept("application/json")
@@ -239,7 +239,7 @@ class EndpointsTests: XCTestCase {
     func testBasicAuth(_ group: XCTestExpectation) {
         let user = "lorbo"
         let pass = "asdfjljv922"
-        Base.httpbin
+        Root.httpbin
             .get("basic-auth/{user}/{pass}", user: user, pass: pass)
             .accept("application/json")
             .basicAuth(user: user, password: pass)
@@ -256,7 +256,7 @@ class EndpointsTests: XCTestCase {
         let age: Int
     }
     func testSerialize(_ group: XCTestExpectation) {
-        Base("https://httpbin.org")
+        Root("https://httpbin.org")
             .post(path: "post")
             .contentType("application/json")
             .accept("application/json")
@@ -279,8 +279,8 @@ class EndpointsTests: XCTestCase {
 
 // In basic HTTP authentication, a request contains a header field in the form of Authorization: Basic <credentials>, where credentials is the Base64 encoding of ID and password joined by a single colon :.
 
-extension Base {
-    func basicAuth(user: String, password: String) -> Base {
+extension Root {
+    func basicAuth(user: String, password: String) -> Root {
         let joined = user + ":" + password
         let encoded = Data(joined.utf8).base64EncodedString()
         return self.authorization("Basic \(encoded)")
@@ -321,8 +321,8 @@ extension TypedBuilder {
     }
 }
 
-extension Base {
-    public func testing(on expectation: XCTestExpectation) -> Base {
+extension Root {
+    public func testing(on expectation: XCTestExpectation) -> Root {
         self.on.either(expectation.fulfill)
             .on.error { err in
                 XCTFail("\(err)")

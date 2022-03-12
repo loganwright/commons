@@ -18,41 +18,42 @@ extension URLSession: Client {
     }
 }
 
-// MARK: BaseWrapper
+// MARK: BasicRequest
 
 /// allowing typed and untyped flexibility in parallel
 @dynamicMemberLookup
-public protocol BaseWrapper {
-    var wrapped: Base { get }
+public protocol BasicRequest {
+    var wrapped: Root { get }
 }
 
-extension Base: BaseWrapper {
-    public var wrapped: Base { self }
+extension Root: BasicRequest {
+    public var wrapped: Root { self }
 }
 
-extension TypedBuilder: BaseWrapper {
-    public var wrapped: Base { base }
+extension TypedBuilder: BasicRequest {
+    public var wrapped: Root { base }
 }
 
-public protocol TypedBaseWrapper: BaseWrapper {
+public protocol Request: BasicRequest {
     associatedtype ResponseType: Decodable
 }
 
-extension Base: TypedBaseWrapper {
+extension Root: Request {
     public typealias ResponseType = JSON
 }
 
-extension TypedBuilder: TypedBaseWrapper {
+extension TypedBuilder: Request {
     public typealias ResponseType = D
 }
 
 @available(iOS 15, *)
-extension BaseWrapper {
+extension BasicRequest {
     public func send() async throws -> NetworkResponse {
         try await withCheckedThrowingContinuation { continuation in
             self.on.result(continuation.resume).send()
         }
     }
+    
     public func send<D: Decodable>(expecting: D.Type = D.self) async throws -> D {
         try await withCheckedThrowingContinuation { continuation in
             self.typed(as: D.self).on.either(continuation.resume).send()
@@ -60,15 +61,23 @@ extension BaseWrapper {
     }
 }
 
-extension BaseWrapper {
-    
-    // MARK: Base Accessors
-    
-    public subscript<T>(dynamicMember kp: KeyPath<Base, T>) -> T {
+@available(iOS 15, *)
+extension Request {
+    public func send() async throws -> ResponseType {
+        try await withCheckedThrowingContinuation { continuation in
+            self.on.either(continuation.resume).send()
+        }
+    }
+}
+
+// MARK: KeyPath Dynamics
+
+extension BasicRequest {
+    public subscript<T>(dynamicMember kp: KeyPath<Root, T>) -> T {
         wrapped[keyPath: kp]
     }
 
-    public subscript<T>(dynamicMember kp: ReferenceWritableKeyPath<Base, T>) -> T {
+    public subscript<T>(dynamicMember kp: ReferenceWritableKeyPath<Root, T>) -> T {
         get {
             wrapped[keyPath: kp]
         }
@@ -111,6 +120,8 @@ extension BaseWrapper {
         path(id, enforceTrailingSlash: enforceTrailingSlash)
     }
     
+    /// appends contents as path component
+    ///
     public func path(_ id: CustomStringConvertible, enforceTrailingSlash: Bool = false) -> Self {
         let component: String
         if id.description == "/" {
@@ -126,9 +137,18 @@ extension BaseWrapper {
     
     // MARK: Headers
     
+    /// add a header to your request
     public var h: HeadersBuilder<Self> { HeadersBuilder(self) }
+    /// add a header to your request
     public var header: HeadersBuilder<Self> { HeadersBuilder(self) }
     
+    /// used to set values for predefined header keys
+    /// ie:
+    ///
+    ///     yourRequest
+    ///         .yourHeader("some val")
+    ///         .yourOtherHeader("some other val")
+    ///
     public subscript(dynamicMember key: KeyPath<HeaderKey, HeaderKey>) -> HeadersBuilderExistingKey<Self> {
         let headerKey = HeaderKey(stringLiteral: "")[keyPath: key]
         return .init(self, key: headerKey.stringValue)
@@ -162,7 +182,7 @@ extension BaseWrapper {
 
 // MARK: Middlewares
 
-extension BaseWrapper {
+extension BasicRequest {
     /// insert a middleware, these will run in order added
     /// calling `front: true` will insert at front of queue
     /// however, if a subsequent call also calls `front: true`
@@ -185,7 +205,7 @@ extension BaseWrapper {
 
 // MARK: Before Hooks
 
-extension BaseWrapper {
+extension BasicRequest {
     /// sets an operation to run before sending
     public func beforeSend(_ op: @escaping () -> Void) -> Self {
         beforeSend({ _ in op() })
@@ -198,14 +218,14 @@ extension BaseWrapper {
     }
 }
     
-extension BaseWrapper {
+extension BasicRequest {
     /// sets a new client to be used
     public func client(_ client: Client) -> Self {
         wrapped.networkClient = client
         return self
     }
     
-    public func encodeQueryArrays(using strategy: Base.QueryArrayEncodingStrategy) -> Self {
+    public func encodeQueryArrays(using strategy: Root.QueryArrayEncodingStrategy) -> Self {
         wrapped.queryArrayEncodingStrategy = strategy
         return self
     }
@@ -213,26 +233,35 @@ extension BaseWrapper {
 
 // MARK: Responders
 
-extension BaseWrapper {
+extension BasicRequest {
+    /// initiate the request over the network
     public func send() {
         wrapped.send()
     }
 }
 
-extension BaseWrapper {
+extension BasicRequest {
+    /// add responders to the response chain
+    ///
+    ///     Root.yourApi
+    ///         .somePath
+    ///         .on.success { }
+    ///         .on.error { }
+    ///
+    /// see: OnBuilder
+    /// it is safe to call this many times and pass the response to any number of responders
+    /// there is a lot of unoptimized serialization happening which may slow things down
+    /// if it becomes too complex
     public var on: OnBuilder<Self, JSON> {
         OnBuilder(self)
     }
 }
 
-extension TypedBaseWrapper {
+extension Request {
     public var on: OnBuilder<Self, ResponseType> {
         OnBuilder(self)
     }
 }
-
-#warning("rename to 'Root'")
-public typealias Base = Root
 
 @dynamicMemberLookup
 public class Root {
@@ -250,6 +279,10 @@ public class Root {
     public var middlewares: [Middleware] = []
     public var beforeSends: [(inout URLRequest) -> Void] = []
     public var networkClient: Client = URLSession(configuration: .default)
+    
+    /// if you want your query arrays encoded ie:
+    /// (multikey) ?a=1&a=2
+    /// (commaseparated) ?a=1,2
     public var queryArrayEncodingStrategy: QueryArrayEncodingStrategy = .commaSeparated
 
     public init(_ url: String) {
@@ -272,6 +305,10 @@ public class Root {
     /// WARNING: adding paths to a base url with a query
     /// will append them after,
     /// ie: foble.com?k=v&abc=123/some/path
+    /// this is an override function, if you're using it
+    /// the framework is failing in some way to assemble the url
+    /// please pass the url exactly including any queries
+    /// or other url items
     public init(absoluteBaseUrl: String) {
         self.baseUrl = absoluteBaseUrl
     }
@@ -304,7 +341,7 @@ public class Root {
         request.allHTTPHeaderFields = _headers
         request.httpMethod = _method.rawValue
         if _method == .get, _body != nil {
-            Log.warn("body sometimes ignored on GET request")
+            Log.warn("servers, or proxies in front of servers will sometimes ignore body on GET request")
         }
         
         if _method != .get, let body = _body {
@@ -314,6 +351,8 @@ public class Root {
         return request
     }
 
+    /// based on the current state of the request,
+    /// returns the url destination
     public var expandedUrl: String {
         let url: String
         if _path.isEmpty {
@@ -337,7 +376,7 @@ public class Root {
         case commaSeparated, multiKeyed
     }
 
-    func makeQueryString(parameters: JSON) -> String {
+    private func makeQueryString(parameters: JSON) -> String {
         guard let object = parameters.object else {
             fatalError("object required for query params")
         }
@@ -395,7 +434,7 @@ public class Root {
     }
     
     /// combines all of the middleware into a single closure chain
-    public func makeResponderChain() -> NetworkCompletion {
+    internal func makeResponderChain() -> NetworkCompletion {
         self.middlewares.reversed().reduce(onComplete) { (result, next) in
             return { res in
                 next.handle(res, next: result)
@@ -410,23 +449,23 @@ public class Root {
 ///
 ///so you can do:
 ///
-///     Base()
+///     Root()
 ///        .get("foo")
 ///        .q.key(value)
 ///        .q(key: value)
 ///        .q.ifTypedFillHereOrAlwaysDynamic
-
+///
 @dynamicMemberLookup
 @dynamicCallable
-public class ObjBuilder<Wrapped: BaseWrapper> {
+public class ObjBuilder<Wrapped: BasicRequest> {
     public let base: Wrapped
     /// this has nothing to do with object keys
     /// it is a back reference to base so that
     /// the object can properly be set to body,
     /// or query, or other..
-    public let kp: ReferenceWritableKeyPath<Base, JSON?>
+    public let kp: ReferenceWritableKeyPath<Root, JSON?>
     
-    fileprivate init(_ backing: Wrapped, kp: ReferenceWritableKeyPath<Base, JSON?>) {
+    fileprivate init(_ backing: Wrapped, kp: ReferenceWritableKeyPath<Root, JSON?>) {
         self.base = backing
         self.kp = kp
     }
@@ -474,6 +513,8 @@ public class ObjBuilder<Wrapped: BaseWrapper> {
 }
 
 extension JSON {
+    /// attempts to reconcile multiple fragments into a single object
+    /// argument has priority and will overwrite existing keys
     func merged(with js: JSON) -> JSON? {
         switch (self, js) {
         case (.object(var l), .object(let r)):
@@ -494,26 +535,23 @@ extension JSON {
 
 // MARK: Path Builder
 
-extension Array where Element == String {
-    
-}
-
+/// used to build paths from an api root
 @dynamicCallable
 @dynamicMemberLookup
-public class PathBuilder<Wrapper: BaseWrapper> {
+public class PathBuilder<Builder: BasicRequest> {
     public var get: HTTPMethod = .get
     public var post: HTTPMethod = .post
     public var put: HTTPMethod = .put
     public var patch: HTTPMethod = .patch
     public var delete: HTTPMethod = .delete
 
-    public let base: Wrapper
+    public let base: Builder
 
-    fileprivate init(_ base: Wrapper) {
+    fileprivate init(_ base: Builder) {
         self.base = base
     }
     
-    public func dynamicallyCall(withArguments args: [CustomStringConvertible]) -> Wrapper {
+    public func dynamicallyCall(withArguments args: [CustomStringConvertible]) -> Builder {
         guard !args.isEmpty else { return base }
         
         let components = args.map(\.description)
@@ -534,7 +572,7 @@ public class PathBuilder<Wrapper: BaseWrapper> {
         return base
     }
     
-    public func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Any>) -> Wrapper {
+    public func dynamicallyCall(withKeywordArguments args: KeyValuePairs<String, Any>) -> Builder {
         var updated = base.wrapped._path
 
         if let arg = args.first, arg.key.isEmpty || arg.key == "path" {
@@ -554,14 +592,16 @@ public class PathBuilder<Wrapper: BaseWrapper> {
     }
 
     /// sometimes we do like `.get("path")`, sometimes we just do like `get.on(success:)`
-    public subscript<T>(dynamicMember key: KeyPath<BaseWrapper, T>) -> T {
+    public subscript<T>(dynamicMember key: KeyPath<BasicRequest, T>) -> T {
         base[keyPath: key]
     }
 }
 
 // MARK: Handler Builder
 
-public struct OnBuilder<Wrapped: BaseWrapper, D: Decodable> {
+/// used to add to the responder chain
+/// based on the various response possibilities
+public struct OnBuilder<Wrapped: BasicRequest, D: Decodable> {
     public let base: Wrapped
 
     init(_ base: Wrapped) {
@@ -604,99 +644,24 @@ public struct OnBuilder<Wrapped: BaseWrapper, D: Decodable> {
 /// carries an inherent type
 @dynamicMemberLookup
 public struct TypedBuilder<D: Decodable> {
-    public let base: Base
+    public let base: Root
 
-    init(_ base: Base) {
+    init(_ base: Root) {
         self.base = base
     }
 
     // is this needed?
-    public var detyped: Base { base }
+    public var detyped: some BasicRequest { base }
+    public var basic: some BasicRequest { base }
 }
 
-extension BaseWrapper {
+extension BasicRequest {
     public func typed<D: Decodable>(as: D.Type = D.self) -> TypedBuilder<D> {
-        .init(wrapped)
+        TypedBuilder(wrapped)
     }
 }
 
-// MARK: Headers Builder
-
-public final class HeadersBuilderExistingKey<Wrapper: BaseWrapper> {
-    public let key: String
-    private let base: Wrapper
-
-    fileprivate init(_ base: Wrapper, key: String) {
-        self.base = base
-        self.key = key
-    }
-    
-    public func callAsFunction(_ val: CustomStringConvertible) -> Wrapper {
-        base.wrapped._headers[key] = val.description
-        return base
-    }
-}
-
-@dynamicMemberLookup
-public final class HeadersBuilder<Wrapper: BaseWrapper> {
-    public let base: Wrapper
-
-    fileprivate init(_ base: Wrapper) {
-        self.base = base
-    }
-
-    public func callAsFunction(_ key: String, _ val: CustomStringConvertible) -> Wrapper {
-        base.wrapped._headers[key] = val.description
-        return base
-    }
-
-    public subscript(dynamicMember key: KeyPath<HeaderKey, HeaderKey>) -> HeadersBuilderExistingKey<Wrapper> {
-        let headerKey = HeaderKey(stringLiteral: "")[keyPath: key]
-        return .init(base, key: headerKey.stringValue)
-    }
-    
-    public subscript(dynamicMember key: String) -> HeadersBuilderExistingKey<Wrapper> {
-        return .init(base, key: key.toHeaderKey)
-    }
-}
-
-extension CharacterSet {
-    static let uppercaseLetters = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-}
-
-extension Unicode.Scalar {
-    var isUppercase: Bool {
-        CharacterSet.uppercaseLetters.contains(self)
-    }
-}
-
-extension String {
-    var camelcaseComponents: [String] {
-        self.splitIncludeDelimiter(whereSeparator: \.isUppercase).map { String($0) }
-    }
-    
-    fileprivate var toHeaderKey: String {
-        var comps = self.camelcaseComponents
-        comps[0] = comps[0].capitalized
-        return comps.joined(separator: "-")
-    }
-}
-
-extension Sequence {
-    func splitIncludeDelimiter(whereSeparator shouldDelimit: (Element) throws -> Bool) rethrows -> [[Element]] {
-        try self.reduce([[]]) { group, next in
-            var group = group
-            if try shouldDelimit(next) {
-                group.append([next])
-            } else {
-                group[group.lastIdx].append(next)
-            }
-            return group
-        }
-    }
-}
-
-extension BaseWrapper {
+extension BasicRequest {
     /// for use with a standard bearer token format
     ///
     ///     Authorization: Bearer \(token)
@@ -706,7 +671,7 @@ extension BaseWrapper {
     }
 }
 
-extension BaseWrapper {
+extension BasicRequest {
     public var logErrors: Self {
         self.on.error { error in
             Log.error(error)
@@ -721,6 +686,7 @@ extension String {
         URLComponents(string: self)!
     }
 }
+
 extension URLComponents {
     fileprivate var baseUrl: String {
         (scheme ?? "https") + "://" + (host ?? path)
