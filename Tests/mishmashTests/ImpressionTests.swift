@@ -1,13 +1,13 @@
 import XCTest
 import Commons
 
-class _____AAAA____IntrospectionTests: XCTestCase {
+class ImpressionTests: XCTestCase {
     func testRead() {
         let user = User()
-        
-        let thing = Impression(label: .key("Top Level"), value: ["i", "am", "a", "list"])
-        print(thing)
-        print()
+        let userImpression = Impression(label: .key("Top Level"), value: user)
+        let arrayImpression = Impression(label: .key("Top Level"), value: ["i", "am", "a", "list"])
+        XCTAssert(userImpression.children.count == 5)
+        XCTAssertEqual(arrayImpression.children.map(\.label), [0, 1, 2, 3].map(Impression.Label.idx))
     }
 }
 
@@ -28,7 +28,7 @@ struct Preferences {
 
 final class Impression {
     let type: String
-    enum Label {
+    enum Label: Equatable {
         case key(String)
         case idx(Int)
     }
