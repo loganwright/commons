@@ -118,6 +118,6 @@ var optOne: some View {
 @available(macOS 12, *)
 struct ZAlignPreview: PreviewProvider {
     static var previews: some View {
-        optOne
+        optOne.padding(12).containerShape(Rectangle())
     }
 }

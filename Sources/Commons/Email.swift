@@ -5,7 +5,7 @@ import Foundation
 public struct Email {
     public private(set) var wrappedValue: String
     
-    init(_ str: String) throws {
+    public init(_ str: String) throws {
         guard str.isValidEmail else {
             throw "\(str) is not a valid email address"
         }
