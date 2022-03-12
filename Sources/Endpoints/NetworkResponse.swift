@@ -69,28 +69,6 @@ extension NetworkResponse: CustomStringConvertible {
     }
 }
 
-
-public struct NNNNResponse {
-    public let http: HTTPURLResponse
-    public let result: Result<Data, Error>
-    
-    
-    public init(_ response: URLResponse?, body: Data?, error: Error?) throws {
-        guard let http = response as? HTTPURLResponse else { throw "unable to make http url response: \(response as Any?)" }
-        self.http = http
-        if http.isSuccessResponse {
-            let desc = error ?? body.flatMap(\.string) ?? "no error or response received"
-            let err = NSError(domain: NSURLErrorDomain,
-                              code: http.statusCode,
-                              userInfo: [NSLocalizedDescriptionKey: desc])
-            self.result = .failure(err)
-        } else {
-            self.result = .success(body ?? Data())
-            
-        }
-    }
-}
-
 /// should be nested in below extension
 /// but not supported generics outside of declaration
 private struct ResultMap: Codable {
