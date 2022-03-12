@@ -91,9 +91,9 @@ extension Builder where Model: CABasicAnimation {
     }
 
     public func completion(_ detyped: @escaping () -> Void) -> Builder {
-        self.completion({ _ in
+        self.completion { _ in
             detyped()
-        })
+        }
     }
 
     public func keyPath<T>(_ kp: KeyPath<CALayer, T>) -> Builder {

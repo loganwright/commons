@@ -70,7 +70,7 @@ extension Array where Element == AnimationBuilder {
         case .sequential:
             var consumable = self
             let next = consumable.removeFirst()
-            next.completion { success in
+            next.completion { success -> Void in
                 if consumable.isEmpty {
                     completion?(success)
                 } else {
