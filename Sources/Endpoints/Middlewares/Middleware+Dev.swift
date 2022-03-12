@@ -22,13 +22,9 @@ public struct ReplaceResponse: Middleware {
     }
 }
 
-extension ReplaceResponse {
-    public static func respondOffline(timesToFail: Int = 1) -> ReplaceResponse {
-        var timesFailed = 0
-        return ReplaceResponse(with: .failure(.noNetwork)) { _ in
-            defer { timesFailed += 1 }
-            return timesFailed < timesToFail
-        }
+extension BasicRequest {
+    func replaceResponse(with replacement: NetworkResult, when should: @escaping (NetworkResult) -> Bool = { _ in true }) -> Self {
+        self.middleware(ReplaceResponse(with: replacement, when: should))
     }
 }
 

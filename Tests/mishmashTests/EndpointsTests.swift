@@ -150,6 +150,7 @@ class EndpointsTests: XCTestCase {
             ("testError", testError),
             ("testBasicAuth", testBasicAuth),
             ("testSerialize", testSerialize),
+            ("testReplaceResult", testReplaceResult),
         ]
 
         orderedTestCases.forEach(execute)
@@ -250,11 +251,12 @@ class EndpointsTests: XCTestCase {
             .send()
     }
 
-    struct BasicUser: Codable {
+    struct BasicUser: Codable, Equatable {
         let id: String
         let name: String
         let age: Int
     }
+    
     func testSerialize(_ group: XCTestExpectation) {
         Root("https://httpbin.org")
             .post(path: "post")
@@ -273,6 +275,41 @@ class EndpointsTests: XCTestCase {
                 XCTAssertEqual(user.age, 234)
             }
             .testing(on: group)
+            .send()
+    }
+    
+    func testReplaceResult(_ group: XCTestExpectation) {
+        class TestError: Error {}
+        let replacingError = TestError()
+        let user = BasicUser(id: "mid", name: "yani bani", age: 233)
+        Root.httpbin
+            .post(path: "post")
+            .contentType("application/json")
+            .accept("application/json")
+            .header("Custom", "more")
+            .body(user)
+            .extracting(dataPath: \.json)
+            .typed(as: BasicUser.self)
+            .on.either { result in
+                switch result {
+                case .success(let body):
+                    XCTAssertEqual(body, user)
+                case .failure(let err):
+                    XCTFail("\(err)")
+                }
+            }
+            .replaceResponse(with: .failure(replacingError))
+            .on.either { result in
+                switch result {
+                case .success(_):
+                    XCTFail("should have been replaced with error")
+                case .failure(let e):
+                    let cast = e as? TestError
+                    XCTAssert(cast === replacingError, "got an error, but not the one we wanted: \(e) \nexpected: \(replacingError)")
+                }
+            }
+            // do NOT call testing(on: as that expects errors
+            .on.either(group.fulfill)
             .send()
     }
 }
