@@ -6,6 +6,10 @@ public enum HTTPMethod: String, Codable, Equatable {
     case post = "POST"
     case patch = "PATCH"
     case delete = "DELETE"
+    case head = "HEAD"
+    case options = "OPTIONS"
+    case trace = "TRACE"
+    case connect = "CONNECT"
 }
 
 public struct HTTPMethods {
@@ -16,6 +20,10 @@ public struct HTTPMethods {
     public var put: HTTPMethod = .put
     public var patch: HTTPMethod = .patch
     public var delete: HTTPMethod = .delete
+    public var head: HTTPMethod = .head
+    public var options: HTTPMethod = .options
+    public var trace: HTTPMethod = .trace
+    public var connect: HTTPMethod = .connect
 }
 
 extension String {
