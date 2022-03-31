@@ -34,7 +34,19 @@ extension Error {
                 return ns.domain + ":\n" + "\(ns.code) - " + string
             }
         } else {
-            return "\(self)"
+            let str = "\(self)"
+            return str.toJSONErrorDisplay ?? str
+        }
+    }
+}
+
+extension String {
+    fileprivate var toJSONErrorDisplay: String? {
+        ( try? JSON.decode(Data(utf8)) ) .flatMap { json in
+            return json.nonFieldErrors?.string
+                ?? json.message?.string
+                ?? json.detail?.string
+                ?? "\(json)"
         }
     }
 }
